@@ -133,9 +133,9 @@ after:
       _is_favorite flag + set_favorite/delete_character commands; card menu with
       favourite/delete, red heart overlay. Compile-verified. (Favourites
       filtering itself is Step 5.)_
-- [ ] **Step 5 — Category filters: All / Recent / Favourite** → [5_category-filters-all-recent-favourite.md](5_category-filters-all-recent-favourite.md)
-      _Implement the three category buttons. Recent = created or spoken-with within
-      3 days; Favourite = explicitly favourited only._
+- [x] [STEP DONE] <s>**Step 5 — Category filters: All / Recent / Favourite** → [5_category-filters-all-recent-favourite.md](5_category-filters-all-recent-favourite.md)</s>
+      _createdAt/lastMessageAt on the DTO (join); MainPage filters All / Recent
+      (3-day window) / Favourites, with empty states. Compile-verified._
 - [ ] **Step 6 — Character name-collision check** → [6_character-name-collision-check.md](6_character-name-collision-check.md)
       _Reject creating two characters with the same name, case-insensitively, at
       both the DB and UX layers._

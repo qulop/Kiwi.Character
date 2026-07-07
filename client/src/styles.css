@@ -337,6 +337,12 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.kc-empty {
+  padding: 40px 8px;
+  color: var(--muted);
+  font-size: 17px;
+  text-align: center;
+}
 .kc-card { position: relative; }
 /* Red heart overlay on favourites (top-right). */
 .kc-card-fav {

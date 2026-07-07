@@ -15,6 +15,10 @@ export interface Character {
   initialMessage?: string;
   /** Whether the user marked this character as a favourite. */
   isFavorite?: boolean;
+  /** ms epoch the character was created. */
+  createdAt?: number;
+  /** ms epoch of the newest message with this character, or null if none. */
+  lastMessageAt?: number | null;
 }
 
 /** Payload for creating a new character (no id yet). */

@@ -11,7 +11,16 @@ interface MainPageProps {
   onDeleteCharacter: (c: Character) => void;
 }
 
-const FILTERS = ['All', 'Recent', 'Favorites'] as const;
+const FILTERS = ['All', 'Recent', 'Favourites'] as const;
+
+/** "Recent" = created or spoken-with within this window. */
+const RECENT_WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+
+const EMPTY_MESSAGE: Record<(typeof FILTERS)[number], string> = {
+  All: 'No characters yet — click “+ Create” to add one.',
+  Recent: 'Nothing recent. Start a chat or create a character.',
+  Favourites: 'No favourites yet. Mark a character with the heart.',
+};
 
 /** Character pickup screen — the grid of character cards. */
 export default function MainPage({
@@ -35,6 +44,16 @@ export default function MainPage({
       document.removeEventListener('keydown', close);
     };
   }, [menuFor]);
+
+  const now = Date.now();
+  const visible = characters.filter((c) => {
+    if (filter === 'All') return true;
+    if (filter === 'Favourites') return !!c.isFavorite;
+    // Recent: created OR last spoken-with within the window.
+    const created = c.createdAt ?? 0;
+    const spoke = c.lastMessageAt ?? 0;
+    return now - created <= RECENT_WINDOW_MS || now - spoke <= RECENT_WINDOW_MS;
+  });
 
   return (
     <div className="kc-app">
@@ -60,8 +79,9 @@ export default function MainPage({
         </div>
 
         <div className="kc-grid-wrap">
+          {visible.length === 0 && <div className="kc-empty">{EMPTY_MESSAGE[filter]}</div>}
           <div className="kc-grid">
-            {characters.map((c) => (
+            {visible.map((c) => (
               <div
                 key={c.id}
                 className="kc-card"
