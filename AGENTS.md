@@ -148,9 +148,9 @@ after:
       _Generalized CharacterFormModal for create + edit; update_character command
       (self-excluding name check, data-URL-only avatar replace). Both chat headers
       open the pre-filled modal with a Save button. Compile-verified._
-- [ ] **Step 9 — Like button in the chat** → [9_chat-like-button.md](9_chat-like-button.md)
+- [x] [STEP DONE] <s>**Step 9 — Like button in the chat** → [9_chat-like-button.md](9_chat-like-button.md)</s>
       _Favourite toggle in the right-panel header (right of the name): red heart
-      when favourited, grey otherwise. Reuses set_favorite. Do after Step 8._
+      when favourited, grey otherwise. Reuses set_favorite/toggleFavorite._
 
 ---
 

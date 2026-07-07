@@ -130,6 +130,7 @@ export default function App() {
           character={activeCharacter}
           conversationId={conversationId}
           onOpenInfo={() => setModal('info')}
+          onToggleFavorite={() => toggleFavorite(activeCharacter)}
         />
       )}
 

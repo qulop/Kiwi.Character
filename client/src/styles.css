@@ -615,6 +615,22 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
 .kc-rpanel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .kc-rpanel-identity { display: flex; align-items: center; gap: 13px; cursor: pointer; border-radius: 12px; min-width: 0; }
 .kc-rpanel-identity:hover { opacity: 0.88; }
+.kc-like-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  color: var(--muted);            /* grey outline heart when not favourited */
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.14s, transform 0.12s;
+}
+.kc-like-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.kc-like-btn:active { transform: scale(0.9); }
+.kc-like-btn.active { color: #ff5069; }
 .kc-rpanel-avatar { width: 50px; height: 50px; font-size: 22px; }
 .kc-rpanel-name { font-family: 'Gaegu', cursive; font-weight: 700; font-size: 21px; line-height: 1.05; }
 .kc-rpanel-info { font-size: 15px; color: var(--dim); line-height: 1.4; }

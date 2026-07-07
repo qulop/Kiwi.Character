@@ -13,6 +13,8 @@ import {
   TrashIcon,
   RewindIcon,
   PenIcon,
+  HeartIcon,
+  HeartFilledIcon,
 } from './icons';
 
 interface ChatPageProps {
@@ -20,10 +22,17 @@ interface ChatPageProps {
   character: Character;
   conversationId: string;
   onOpenInfo: () => void;
+  onToggleFavorite: () => void;
 }
 
 /** Conversation screen — message thread, composer, character panel. */
-export default function ChatPage({ sidebar, character, conversationId, onOpenInfo }: ChatPageProps) {
+export default function ChatPage({
+  sidebar,
+  character,
+  conversationId,
+  onOpenInfo,
+  onToggleFavorite,
+}: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
   const [draft, setDraft] = useState('');
@@ -290,6 +299,14 @@ export default function ChatPage({ sidebar, character, conversationId, onOpenInf
             <Avatar character={character} className="kc-rpanel-avatar" />
             <div className="kc-rpanel-name">{character.name}</div>
           </div>
+          <button
+            className={'kc-like-btn' + (character.isFavorite ? ' active' : '')}
+            aria-label={character.isFavorite ? 'Remove favourite' : 'Add to favourites'}
+            aria-pressed={!!character.isFavorite}
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+          >
+            {character.isFavorite ? <HeartFilledIcon /> : <HeartIcon />}
+          </button>
         </div>
         <div className="kc-rpanel-info">{character.info}</div>
         <div className="kc-divider" style={{ margin: '2px 0' }} />
