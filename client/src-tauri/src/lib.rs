@@ -36,6 +36,7 @@ pub fn run() {
             commands::list_messages,
             commands::send_message,
             commands::stream_message,
+            commands::stream_continue,
             commands::update_message,
             commands::delete_message,
             commands::rewind_to_message,

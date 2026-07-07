@@ -48,7 +48,8 @@ CREATE TABLE IF NOT EXISTS messages (
                         REFERENCES conversations(id) ON DELETE CASCADE,
     role            TEXT    NOT NULL CHECK (role IN ('user','assistant','system')),
     content         TEXT    NOT NULL,
-    created_at      INTEGER NOT NULL            -- ms epoch
+    created_at      INTEGER NOT NULL,           -- ms epoch
+    hidden          INTEGER NOT NULL DEFAULT 0  -- 1 = technical message, not shown in the UI
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_conversation

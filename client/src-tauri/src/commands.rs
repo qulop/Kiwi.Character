@@ -148,12 +148,12 @@ pub async fn send_message(
     let (settings, character, history) = {
         let db = state.db.lock().unwrap();
         db::conversations::ensure(&db.conn, &conversation_id)?;
-        db::messages::insert(&db.conn, &conversation_id, "user", &content)?;
+        db::messages::insert(&db.conn, &conversation_id, "user", &content, false)?;
 
         let character_id = db::conversations::character_id_of(&db.conn, &conversation_id)?;
         let character = db::characters::get(&db.conn, &character_id)?
             .ok_or_else(|| format!("Character '{character_id}' not found"))?;
-        let history = db::messages::list(&db.conn, &conversation_id)?;
+        let history = db::messages::list_all(&db.conn, &conversation_id)?;
         let settings = db::settings::get(&db.conn)?;
         (settings, character, history)
     };
@@ -167,7 +167,7 @@ pub async fn send_message(
     // 4. Persist and return the assistant reply.
     let reply = {
         let db = state.db.lock().unwrap();
-        db::messages::insert(&db.conn, &conversation_id, "assistant", &reply_text)?
+        db::messages::insert(&db.conn, &conversation_id, "assistant", &reply_text, false)?
     };
     Ok(reply)
 }
@@ -185,12 +185,12 @@ pub async fn stream_message(
     let (settings, character, history) = {
         let db = state.db.lock().unwrap();
         db::conversations::ensure(&db.conn, &conversation_id)?;
-        db::messages::insert(&db.conn, &conversation_id, "user", &content)?;
+        db::messages::insert(&db.conn, &conversation_id, "user", &content, false)?;
 
         let character_id = db::conversations::character_id_of(&db.conn, &conversation_id)?;
         let character = db::characters::get(&db.conn, &character_id)?
             .ok_or_else(|| format!("Character '{character_id}' not found"))?;
-        let history = db::messages::list(&db.conn, &conversation_id)?;
+        let history = db::messages::list_all(&db.conn, &conversation_id)?;
         let settings = db::settings::get(&db.conn)?;
         (settings, character, history)
     };
@@ -210,13 +210,69 @@ pub async fn stream_message(
             // 4a. Persist the assistant reply, then signal completion.
             {
                 let db = state.db.lock().unwrap();
-                db::messages::insert(&db.conn, &conversation_id, "assistant", &full)?;
+                db::messages::insert(&db.conn, &conversation_id, "assistant", &full, false)?;
             }
             let _ = app.emit("chat://done", ());
             Ok(())
         }
         Err(e) => {
             // 4b. Surface the real error to the UI.
+            let _ = app.emit("chat://error", e.clone());
+            Err(e)
+        }
+    }
+}
+
+/// The hidden instruction sent as a "user" turn to make the model continue its
+/// previous message.
+const CONTINUE_PROMPT: &str =
+    "(Continue your previous message from exactly where it left off. Do not repeat, \
+     restart, greet, or acknowledge this instruction — simply continue the text seamlessly.)";
+
+/// Empty-send / "continue". If the last turn is the assistant's, inject a hidden
+/// technical user message so the model continues (never shown in the UI). If the
+/// last turn is the user's (e.g. after a rewind/delete), just generate a reply
+/// for it. Emits the same `chat://token|done|error` events as `stream_message`.
+#[tauri::command]
+pub async fn stream_continue(
+    conversation_id: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let (settings, character, history) = {
+        let db = state.db.lock().unwrap();
+        db::conversations::ensure(&db.conn, &conversation_id)?;
+
+        if db::messages::last_role(&db.conn, &conversation_id)?.as_deref() == Some("assistant") {
+            db::messages::insert(&db.conn, &conversation_id, "user", CONTINUE_PROMPT, true)?;
+        }
+
+        let character_id = db::conversations::character_id_of(&db.conn, &conversation_id)?;
+        let character = db::characters::get(&db.conn, &character_id)?
+            .ok_or_else(|| format!("Character '{character_id}' not found"))?;
+        let history = db::messages::list_all(&db.conn, &conversation_id)?;
+        let settings = db::settings::get(&db.conn)?;
+        (settings, character, history)
+    };
+
+    let req_msgs = build_request(&character, &settings, &history);
+
+    let app_for_tokens = app.clone();
+    let result = openai::chat_completion_stream(&settings, req_msgs, |tok| {
+        let _ = app_for_tokens.emit("chat://token", tok);
+    })
+    .await;
+
+    match result {
+        Ok(full) => {
+            {
+                let db = state.db.lock().unwrap();
+                db::messages::insert(&db.conn, &conversation_id, "assistant", &full, false)?;
+            }
+            let _ = app.emit("chat://done", ());
+            Ok(())
+        }
+        Err(e) => {
             let _ = app.emit("chat://error", e.clone());
             Err(e)
         }

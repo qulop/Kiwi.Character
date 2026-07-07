@@ -45,7 +45,7 @@ pub fn ensure(conn: &Connection, conversation_id: &str) -> Result<(), String> {
     .map_err(|e| e.to_string())?;
 
     if !greeting.is_empty() {
-        messages::insert(conn, conversation_id, "assistant", &greeting)?;
+        messages::insert(conn, conversation_id, "assistant", &greeting, false)?;
     }
     Ok(())
 }

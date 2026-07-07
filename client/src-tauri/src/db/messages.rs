@@ -1,17 +1,14 @@
 //! `messages` table repository.
 
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::models::ChatMessage;
 use crate::state::{new_id, now_ms};
 
-pub fn list(conn: &Connection, conversation_id: &str) -> Result<Vec<ChatMessage>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, role, content, created_at FROM messages
-             WHERE conversation_id = ?1 ORDER BY created_at ASC",
-        )
-        .map_err(|e| e.to_string())?;
+fn map_rows(
+    stmt: &mut rusqlite::Statement,
+    conversation_id: &str,
+) -> Result<Vec<ChatMessage>, String> {
     let rows = stmt
         .query_map(params![conversation_id], |r| {
             Ok(ChatMessage {
@@ -26,12 +23,47 @@ pub fn list(conn: &Connection, conversation_id: &str) -> Result<Vec<ChatMessage>
         .map_err(|e| e.to_string())
 }
 
+/// Visible messages only (hidden technical messages excluded) — for the UI.
+pub fn list(conn: &Connection, conversation_id: &str) -> Result<Vec<ChatMessage>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, role, content, created_at FROM messages
+             WHERE conversation_id = ?1 AND hidden = 0 ORDER BY created_at ASC, rowid ASC",
+        )
+        .map_err(|e| e.to_string())?;
+    map_rows(&mut stmt, conversation_id)
+}
+
+/// All messages including hidden ones — for building the model prompt.
+pub fn list_all(conn: &Connection, conversation_id: &str) -> Result<Vec<ChatMessage>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, role, content, created_at FROM messages
+             WHERE conversation_id = ?1 ORDER BY created_at ASC, rowid ASC",
+        )
+        .map_err(|e| e.to_string())?;
+    map_rows(&mut stmt, conversation_id)
+}
+
+/// The role of the newest message (by insertion order), if any.
+pub fn last_role(conn: &Connection, conversation_id: &str) -> Result<Option<String>, String> {
+    conn.query_row(
+        "SELECT role FROM messages WHERE conversation_id = ?1 ORDER BY rowid DESC LIMIT 1",
+        params![conversation_id],
+        |r| r.get::<_, String>(0),
+    )
+    .optional()
+    .map_err(|e| e.to_string())
+}
+
 /// Insert a message and bump the parent conversation's `last_message_at`.
+/// `hidden` marks a technical message that the UI must not display.
 pub fn insert(
     conn: &Connection,
     conversation_id: &str,
     role: &str,
     content: &str,
+    hidden: bool,
 ) -> Result<ChatMessage, String> {
     let m = ChatMessage {
         id: new_id(),
@@ -40,9 +72,9 @@ pub fn insert(
         created_at: Some(now_ms()),
     };
     conn.execute(
-        "INSERT INTO messages (id, conversation_id, role, content, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5)",
-        params![m.id, conversation_id, m.role, m.content, m.created_at],
+        "INSERT INTO messages (id, conversation_id, role, content, created_at, hidden)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![m.id, conversation_id, m.role, m.content, m.created_at, hidden as i64],
     )
     .map_err(|e| e.to_string())?;
     conn.execute(
