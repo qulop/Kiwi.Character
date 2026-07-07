@@ -430,6 +430,8 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   padding: 14px 26px;
   border-bottom: 1px solid var(--line);
 }
+.kc-chat-identity { display: flex; align-items: center; gap: 12px; cursor: pointer; border-radius: 12px; }
+.kc-chat-identity:hover { opacity: 0.88; }
 .kc-chat-head-avatar { width: 38px; height: 38px; font-size: 17px; }
 .kc-chat-name { font-family: 'Gaegu', cursive; font-weight: 700; font-size: 20px; line-height: 1; }
 .kc-status { display: flex; align-items: center; gap: 7px; margin-left: 8px; color: var(--muted); font-size: 14px; }
@@ -610,7 +612,9 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   border-left: 1px solid var(--line);
   min-height: 0;
 }
-.kc-rpanel-head { display: flex; align-items: center; gap: 13px; }
+.kc-rpanel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.kc-rpanel-identity { display: flex; align-items: center; gap: 13px; cursor: pointer; border-radius: 12px; min-width: 0; }
+.kc-rpanel-identity:hover { opacity: 0.88; }
 .kc-rpanel-avatar { width: 50px; height: 50px; font-size: 22px; }
 .kc-rpanel-name { font-family: 'Gaegu', cursive; font-weight: 700; font-size: 21px; line-height: 1.05; }
 .kc-rpanel-info { font-size: 15px; color: var(--dim); line-height: 1.4; }

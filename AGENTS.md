@@ -144,10 +144,10 @@ after:
       _Top-right three-dots menu (flips up near the page bottom). All: Copy,
       Remove. User also: Edit (inline) + Rewind to here. Backend delete/rewind/
       update_message; thread reloads after send for real ids. Compile-verified._
-- [ ] **Step 8 — Character Info modal (view & edit)** → [8_character-info-modal.md](8_character-info-modal.md)
-      _Clicking the avatar/name in either header opens a pre-filled, editable
-      copy of the create form ("Save" button); backed by a new update_character
-      command. Reuses one generalized CharacterFormModal for create + edit._
+- [x] [STEP DONE] <s>**Step 8 — Character Info modal (view & edit)** → [8_character-info-modal.md](8_character-info-modal.md)</s>
+      _Generalized CharacterFormModal for create + edit; update_character command
+      (self-excluding name check, data-URL-only avatar replace). Both chat headers
+      open the pre-filled modal with a Save button. Compile-verified._
 - [ ] **Step 9 — Like button in the chat** → [9_chat-like-button.md](9_chat-like-button.md)
       _Favourite toggle in the right-panel header (right of the name): red heart
       when favourited, grey otherwise. Reuses set_favorite. Do after Step 8._

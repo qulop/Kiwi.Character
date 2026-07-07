@@ -90,6 +90,14 @@ export const RewindIcon = () => (
   </svg>
 );
 
+export const InfoIcon = () => (
+  <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#e7e9ea" strokeWidth="1.6">
+    <circle cx="12" cy="12" r="9" />
+    <line x1="12" y1="11" x2="12" y2="16.5" strokeLinecap="round" />
+    <circle cx="12" cy="7.6" r="1.05" fill="#e7e9ea" stroke="none" />
+  </svg>
+);
+
 export const PenIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
     <path d="M4 20h4L18 10a2 2 0 0 0-4-4L4 16v4z" strokeLinejoin="round" />

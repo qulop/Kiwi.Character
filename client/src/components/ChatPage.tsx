@@ -19,10 +19,11 @@ interface ChatPageProps {
   sidebar: React.ReactNode;
   character: Character;
   conversationId: string;
+  onOpenInfo: () => void;
 }
 
 /** Conversation screen — message thread, composer, character panel. */
-export default function ChatPage({ sidebar, character, conversationId }: ChatPageProps) {
+export default function ChatPage({ sidebar, character, conversationId, onOpenInfo }: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
   const [draft, setDraft] = useState('');
@@ -202,8 +203,11 @@ export default function ChatPage({ sidebar, character, conversationId }: ChatPag
 
       <main className="kc-main">
         <div className="kc-chat-head">
-          <Avatar character={character} className="kc-chat-head-avatar" />
-          <div className="kc-chat-name">{character.name}</div>
+          <div className="kc-chat-identity" role="button" tabIndex={0}
+               onClick={onOpenInfo} onKeyDown={(e) => e.key === 'Enter' && onOpenInfo()}>
+            <Avatar character={character} className="kc-chat-head-avatar" />
+            <div className="kc-chat-name">{character.name}</div>
+          </div>
           <div className="kc-status"><span className="kc-status-dot" /> local model</div>
         </div>
 
@@ -281,8 +285,11 @@ export default function ChatPage({ sidebar, character, conversationId }: ChatPag
 
       <aside className="kc-rpanel">
         <div className="kc-rpanel-head">
-          <Avatar character={character} className="kc-rpanel-avatar" />
-          <div className="kc-rpanel-name">{character.name}</div>
+          <div className="kc-rpanel-identity" role="button" tabIndex={0}
+               onClick={onOpenInfo} onKeyDown={(e) => e.key === 'Enter' && onOpenInfo()}>
+            <Avatar character={character} className="kc-rpanel-avatar" />
+            <div className="kc-rpanel-name">{character.name}</div>
+          </div>
         </div>
         <div className="kc-rpanel-info">{character.info}</div>
         <div className="kc-divider" style={{ margin: '2px 0' }} />

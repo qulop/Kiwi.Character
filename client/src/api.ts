@@ -49,8 +49,13 @@ export async function createCharacter(input: NewCharacterInput): Promise<Charact
   return withAvatarUrl(await invoke<Character>('create_character', { input }));
 }
 
-export function characterNameAvailable(name: string): Promise<boolean> {
-  return invoke('character_name_available', { name });
+export async function updateCharacter(id: string, input: NewCharacterInput): Promise<Character> {
+  return withAvatarUrl(await invoke<Character>('update_character', { id, input }));
+}
+
+/** `excludeId` lets the edit form keep the character's own current name. */
+export function characterNameAvailable(name: string, excludeId?: string): Promise<boolean> {
+  return invoke('character_name_available', { name, excludeId: excludeId ?? null });
 }
 
 export function setFavorite(characterId: string, favorite: boolean): Promise<void> {

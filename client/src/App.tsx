@@ -6,10 +6,24 @@ import Sidebar from './components/Sidebar';
 import MainPage from './components/MainPage';
 import ChatPage from './components/ChatPage';
 import SettingsModal from './components/SettingsModal';
-import NewCharacterModal from './components/NewCharacterModal';
+import CharacterFormModal from './components/CharacterFormModal';
+import { NewCharIcon, InfoIcon } from './components/icons';
 
 type Page = 'main' | 'chat';
-type Modal = 'settings' | 'new' | null;
+type Modal = 'settings' | 'new' | 'info' | null;
+
+const EMPTY_INPUT: NewCharacterInput = {
+  name: '', info: '', appearance: '', description: '', initialMessage: '', avatar: null,
+};
+
+const characterToInput = (c: Character): NewCharacterInput => ({
+  name: c.name,
+  info: c.info,
+  appearance: c.appearance ?? '',
+  description: c.description ?? '',
+  initialMessage: c.initialMessage ?? '',
+  avatar: c.avatar ?? null,
+});
 
 export default function App() {
   const [page, setPage] = useState<Page>('main');
@@ -51,6 +65,15 @@ export default function App() {
     setCharacters((cs) => [created, ...cs]);
     setModal(null);
     openCharacter(created);
+  };
+
+  const updateCharacter = async (input: NewCharacterInput) => {
+    if (!activeCharacter) return;
+    // Throws on collision so the modal stays open and shows the error.
+    const updated = await api.updateCharacter(activeCharacter.id, input);
+    setCharacters((cs) => cs.map((x) => (x.id === updated.id ? updated : x)));
+    setActiveCharacter(updated);
+    setModal(null);
   };
 
   const toggleFavorite = async (c: Character) => {
@@ -102,7 +125,12 @@ export default function App() {
           onDeleteCharacter={deleteCharacter}
         />
       ) : (
-        <ChatPage sidebar={sidebar} character={activeCharacter} conversationId={conversationId} />
+        <ChatPage
+          sidebar={sidebar}
+          character={activeCharacter}
+          conversationId={conversationId}
+          onOpenInfo={() => setModal('info')}
+        />
       )}
 
       {modal && (
@@ -116,7 +144,25 @@ export default function App() {
             />
           )}
           {modal === 'new' && (
-            <NewCharacterModal onClose={() => setModal(null)} onCreate={createCharacter} />
+            <CharacterFormModal
+              title="New Character"
+              icon={<NewCharIcon />}
+              submitLabel="Create Character"
+              initial={EMPTY_INPUT}
+              onClose={() => setModal(null)}
+              onSubmit={createCharacter}
+            />
+          )}
+          {modal === 'info' && activeCharacter && (
+            <CharacterFormModal
+              title="Character Info"
+              icon={<InfoIcon />}
+              submitLabel="Save"
+              initial={characterToInput(activeCharacter)}
+              excludeId={activeCharacter.id}
+              onClose={() => setModal(null)}
+              onSubmit={updateCharacter}
+            />
           )}
         </div>
       )}
