@@ -192,7 +192,7 @@ export default function ChatPage({
           if (menuMsg === m.id) { setMenuMsg(null); return; }
           // Flip the menu upward if there isn't room below the button.
           const rect = e.currentTarget.getBoundingClientRect();
-          const items = m.role === 'user' ? 4 : 2;
+          const items = m.role === 'user' ? 4 : 3;
           const estHeight = items * 36 + 16;
           setMenuUp(window.innerHeight - rect.bottom < estHeight + 12);
           setMenuMsg(m.id);
@@ -206,9 +206,7 @@ export default function ChatPage({
           onClick={(e) => e.stopPropagation()}
         >
           <button onClick={() => { copyMessage(m); setMenuMsg(null); }}><CopyIcon /> <span>Copy</span></button>
-          {m.role === 'user' && (
-            <button onClick={() => { startEdit(m); setMenuMsg(null); }}><PenIcon /> <span>Edit</span></button>
-          )}
+          <button onClick={() => { startEdit(m); setMenuMsg(null); }}><PenIcon /> <span>Edit</span></button>
           {m.role === 'user' && (
             <button onClick={() => { rewindTo(m); setMenuMsg(null); }}><RewindIcon /> <span>Rewind to here</span></button>
           )}
@@ -252,7 +250,22 @@ export default function ChatPage({
                       <span className="kc-msg-author">{character.name}</span>
                       {renderMenu(m)}
                     </div>
-                    <div className="kc-bubble">{m.content}</div>
+                    {editingId === m.id ? (
+                      <div className="kc-bubble kc-bubble-edit">
+                        <textarea
+                          className="kc-edit-area"
+                          value={editDraft}
+                          onChange={(e) => setEditDraft(e.target.value)}
+                          autoFocus
+                        />
+                        <div className="kc-edit-actions">
+                          <button className="kc-edit-save" onClick={() => saveEdit(m)}>Save</button>
+                          <button className="kc-edit-cancel" onClick={cancelEdit}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="kc-bubble">{m.content}</div>
+                    )}
                   </div>
                 </div>
                 )
