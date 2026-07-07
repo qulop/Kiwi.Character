@@ -24,6 +24,13 @@ pub struct Character {
     pub initial_message: String,
     #[serde(default)]
     pub is_favorite: bool,
+    /// ms epoch the character was created (drives the "Recent" category).
+    #[serde(default)]
+    pub created_at: i64,
+    /// ms epoch of the newest message across the character's conversations,
+    /// or `None` if never chatted with (also drives "Recent").
+    #[serde(default)]
+    pub last_message_at: Option<i64>,
 }
 
 /// Payload for creating a new character (no id yet).

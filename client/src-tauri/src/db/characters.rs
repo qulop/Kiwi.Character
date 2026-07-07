@@ -7,6 +7,19 @@ use rusqlite::{params, Connection, OptionalExtension, Row};
 use crate::models::{Character, NewCharacterInput};
 use crate::state::{new_id, now_ms};
 
+/// Shared projection: every character column plus the newest message time
+/// across its conversations (`last_message_at`, NULL if none). Used by both
+/// `list` and `get` so the row mapping always finds the same columns.
+const SELECT_CHARACTER: &str = "
+    SELECT c.id, c.name, c.info, c.avatar_path, c.appearance, c.description,
+           c.initial_message, c.is_favorite, c.created_at,
+           v.last_at AS last_message_at
+    FROM characters c
+    LEFT JOIN (
+        SELECT character_id, MAX(last_message_at) AS last_at
+        FROM conversations GROUP BY character_id
+    ) v ON v.character_id = c.id";
+
 fn row_to_character(r: &Row) -> rusqlite::Result<Character> {
     Ok(Character {
         id: r.get("id")?,
@@ -17,26 +30,24 @@ fn row_to_character(r: &Row) -> rusqlite::Result<Character> {
         description: r.get("description")?,
         initial_message: r.get("initial_message")?,
         is_favorite: r.get::<_, i64>("is_favorite")? != 0,
+        created_at: r.get("created_at")?,
+        last_message_at: r.get::<_, Option<i64>>("last_message_at")?,
     })
 }
 
 pub fn list(conn: &Connection) -> Result<Vec<Character>, String> {
-    let mut stmt = conn
-        .prepare("SELECT * FROM characters ORDER BY created_at DESC")
-        .map_err(|e| e.to_string())?;
+    let sql = format!("{SELECT_CHARACTER} ORDER BY c.created_at DESC");
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt.query_map([], row_to_character).map_err(|e| e.to_string())?;
     rows.collect::<rusqlite::Result<Vec<_>>>()
         .map_err(|e| e.to_string())
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Character>, String> {
-    conn.query_row(
-        "SELECT * FROM characters WHERE id = ?1",
-        params![id],
-        row_to_character,
-    )
-    .optional()
-    .map_err(|e| e.to_string())
+    let sql = format!("{SELECT_CHARACTER} WHERE c.id = ?1");
+    conn.query_row(&sql, params![id], row_to_character)
+        .optional()
+        .map_err(|e| e.to_string())
 }
 
 /// Case-insensitive existence check. Pass `""` for `exclude_id` when creating.
@@ -91,6 +102,8 @@ pub fn insert(
         description: input.description,
         initial_message: input.initial_message,
         is_favorite: false,
+        created_at: ts,
+        last_message_at: None,
     })
 }
 
