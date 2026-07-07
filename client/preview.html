@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kiwi.Character — React preview</title>
+<link rel="stylesheet" href="./src/styles.css" />
+<!-- React + Babel from CDN. DEV-ONLY preview; the real app builds with Vite. -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
+<style>
+  #boot { font-family: 'Patrick Hand', cursive; color: #aeb3b6; padding: 24px; }
+</style>
+</head>
+<body>
+<div id="root"><div id="boot">Compiling components…</div></div>
+
+<script>
+/* ============================================================
+   Tiny in-browser module system so we can load the ACTUAL
+   .tsx source files (single source of truth) without a build.
+   Each file is fetched, transpiled by Babel to CommonJS, then
+   evaluated with a require() that resolves relative paths and
+   stubs react / react-dom / @tauri-apps/api.
+   ============================================================ */
+
+// ---- Mock Tauri backend (stands in for the Rust commands) ----
+const BASE = [
+  { name: 'Captain Vega', info: 'Stoic starship pilot with a very dry sense of humour.' },
+  { name: 'Mira Sage', info: 'Ancient librarian who only ever answers in riddles.' },
+  { name: 'Pixel', info: 'Glitchy little AI companion, endlessly curious.' },
+  { name: 'Don Lorenzo', info: 'Old-world chef with strong opinions on garlic.' },
+  { name: 'Nova', info: 'Cyberpunk hacker. Sarcastic, brilliant, slightly paranoid.' },
+  { name: 'Brother Anselm', info: 'Calm wandering monk who hands out life advice.' },
+  { name: 'Roxy', info: 'Energetic rockstar — loud, loyal, always backstage.' },
+  { name: 'Dr. Quill', info: 'Eccentric inventor who keeps forgetting your name.' },
+  { name: 'Yuki', info: 'Quiet ronin carrying a carefully hidden past.' },
+  { name: 'Bubbles', info: 'Cheerful slime creature delighted by simple joys.' },
+  { name: 'The Warden', info: 'Mysterious gatekeeper. Tests everyone who passes.' },
+  { name: 'Coral', info: 'Marine biologist who dreams impossibly big.' },
+];
+const CHARS = BASE.map((c, i) => ({ id: 'c' + i, ...c, avatar: null }));
+const SEED = [
+  { role: 'assistant', content: "You're cleared for docking, traveler. State your business aboard the Meridian." },
+  { role: 'user', content: "Just passing through. Heard you run the tightest ship in the belt." },
+  { role: 'assistant', content: "Flattery. Works occasionally. Mind the railings — gravity's been temperamental." },
+  { role: 'user', content: "Noted. Any chance of a coffee on this tight ship?" },
+  { role: 'assistant', content: "Synthetic, black, and judgmental. Galley's portside. Don't touch my mug." },
+];
+const REPLIES = [
+  "Hm. We'll see if you can keep up.",
+  "Coffee's earned, not given. But fine — this once.",
+  "The Meridian's heard worse. Carry on.",
+  "Spoken like someone who's never cleaned a plasma vent.",
+  "Noted. Don't make me regret the clearance.",
+];
+let replyIdx = 0;
+const wait = (ms, v) => new Promise((r) => setTimeout(() => r(v), ms));
+
+async function mockInvoke(cmd, args) {
+  switch (cmd) {
+    case 'list_characters': return wait(60, CHARS);
+    case 'list_history':
+      return wait(60, BASE.slice(0, 7).map((c, i) => ({ id: 'conv-c' + i, characterId: 'c' + i, name: c.name })));
+    case 'get_character': return CHARS.find((c) => c.id === args.id);
+    case 'create_character':
+      return wait(150, { id: 'c' + Date.now(), ...args.input });
+    case 'list_messages':
+      return wait(120, SEED.map((m, i) => ({ id: 'm' + i, ...m, createdAt: Date.now() })));
+    case 'send_message':
+      return wait(1000, { id: 'a' + Date.now(), role: 'assistant', content: REPLIES[replyIdx++ % REPLIES.length], createdAt: Date.now() });
+    case 'get_settings':
+      return { endpoint: 'http://localhost:1234/v1', model: 'llama-3.1-8b-instruct', contextLength: 100, gpuOffload: 60, temperature: 0.8, maxTokens: 2048, systemPrompt: '' };
+    case 'save_settings': return;
+    case 'load_model': return wait(300);
+    case 'test_endpoint':
+      return wait(700, { ok: true, models: ['llama-3.1-8b-instruct', 'mistral-7b-instruct-v0.3', 'qwen2.5-14b-instruct', 'phi-3-mini-4k'] });
+    case 'stream_message': return;
+    default: throw new Error('Unknown command: ' + cmd);
+  }
+}
+
+const STUBS = {
+  react: window.React,
+  'react-dom': window.ReactDOM,
+  'react-dom/client': window.ReactDOM,
+  '@tauri-apps/api/core': { invoke: mockInvoke },
+  '@tauri-apps/api/event': { listen: async () => () => {} },
+};
+
+const FILES = [
+  'src/types.ts',
+  'src/api.ts',
+  'src/components/icons.tsx',
+  'src/components/Sidebar.tsx',
+  'src/components/SettingsModal.tsx',
+  'src/components/NewCharacterModal.tsx',
+  'src/components/MainPage.tsx',
+  'src/components/ChatPage.tsx',
+  'src/App.tsx',
+];
+
+const idOf = (file) => file.replace(/\.(tsx|ts)$/, '');
+function resolve(fromId, spec) {
+  if (spec in STUBS || STUBS[spec]) return spec;
+  if (spec.startsWith('@tauri-apps')) return spec;
+  if (spec.endsWith('.css')) return '__css__';
+  const fromDir = fromId.split('/').slice(0, -1);
+  const parts = spec.split('/');
+  const stack = [...fromDir];
+  for (const p of parts) {
+    if (p === '.' || p === '') continue;
+    else if (p === '..') stack.pop();
+    else stack.push(p);
+  }
+  return stack.join('/');
+}
+
+const factories = {}; // id -> function(require, module, exports)
+const cache = {};     // id -> exports
+
+function makeRequire(fromId) {
+  return function (spec) {
+    if (STUBS[spec]) return STUBS[spec];
+    const id = resolve(fromId, spec);
+    if (id === '__css__') return {};
+    if (STUBS[spec]) return STUBS[spec];
+    if (cache[id]) return cache[id];
+    const factory = factories[id];
+    if (!factory) throw new Error('Cannot resolve "' + spec + '" from ' + fromId);
+    const module = { exports: {} };
+    cache[id] = module.exports;
+    factory(makeRequire(id), module, module.exports);
+    cache[id] = module.exports;
+    return module.exports;
+  };
+}
+
+(async function boot() {
+  try {
+    for (const file of FILES) {
+      const src = await (await fetch('./' + file)).text();
+      const out = Babel.transform(src, {
+        filename: file,
+        presets: [['env', { modules: 'commonjs', targets: { esmodules: true } }], ['react', { runtime: 'classic' }], 'typescript'],
+      }).code;
+      // eslint-disable-next-line no-new-func
+      factories[idOf(file)] = new Function('require', 'module', 'exports', out);
+    }
+    const App = makeRequire('boot')('./src/App').default;
+    window.ReactDOM.createRoot(document.getElementById('root')).render(window.React.createElement(App));
+  } catch (err) {
+    document.getElementById('root').innerHTML =
+      '<pre style="color:#ff9b9b;font-family:monospace;padding:24px;white-space:pre-wrap">' +
+      (err && err.stack ? err.stack : err) + '</pre>';
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+/* ============================================================
+   Kiwi.Character — global styles
+   "hand-crafted dark": Gaegu (headings) + Patrick Hand (body),
+   near-black backgrounds, single purple accent.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Gaegu:wght@400;700&display=swap');
+
+:root {
+  --bg: #131519;
+  --panel: #1c1f25;
+  --panel2: #23272e;
+  --side: #16181c;
+  --ink: #e7e9ea;
+  --dim: #aeb3b6;
+  --muted: #868c91;
+  --line: rgba(255, 255, 255, 0.07);
+  --line2: rgba(255, 255, 255, 0.13);
+  --acc: oklch(0.66 0.2 300);
+  --accB: oklch(0.73 0.2 300);
+  --accSoft: oklch(0.66 0.2 300 / 0.15);
+  --bub: #1c1f20;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --radius-hand: 225px 18px 225px 18px / 18px 225px 18px 225px;
+  --radius-hand-sm: 225px 16px 225px 16px / 16px 225px 16px 225px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: 'Patrick Hand', cursive;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track { background: transparent; }
+input::placeholder, textarea::placeholder { color: #6f757a; }
+
+/* ---------- App shell ---------- */
+.kc-app {
+  height: 100vh;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+.kc-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.kc-scroll { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+
+/* ---------- Avatars ---------- */
+.kc-avatar {
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1px solid var(--line2);
+  background: radial-gradient(130% 130% at 30% 22%, #2e2747, #181a20);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Gaegu', cursive;
+  font-weight: 700;
+  color: rgba(231, 233, 234, 0.9);
+}
+.kc-avatar--user {
+  background: radial-gradient(130% 130% at 30% 22%, #322a4d, #1a1c22);
+  color: var(--dim);
+}
+
+/* ---------- Sidebar ---------- */
+.kc-side {
+  flex: 0 0 264px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 18px 15px;
+  background: var(--side);
+  border-right: 1px solid var(--line);
+  min-height: 0;
+}
+.kc-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 2px 4px 4px;
+  text-decoration: none;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.kc-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 30%;
+  background: radial-gradient(130% 130% at 30% 22%, oklch(0.66 0.2 300), oklch(0.5 0.2 300));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Gaegu', cursive;
+  font-weight: 700;
+  font-size: 21px;
+  color: #fff;
+  box-shadow: 0 3px 10px oklch(0.66 0.2 300 / 0.45);
+}
+.kc-brand-name {
+  font-family: 'Gaegu', cursive;
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: 0.4px;
+}
+
+.kc-create-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px 14px;
+  background: var(--acc);
+  border: none;
+  border-radius: var(--radius-hand);
+  color: #fff;
+  font-family: 'Patrick Hand', cursive;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px oklch(0.66 0.2 300 / 0.4);
+  transition: background 0.14s, transform 0.12s;
+}
+.kc-create-btn:hover { background: var(--accB); transform: translateY(-1px); }
+.kc-create-btn .plus { font-size: 25px; line-height: 0; font-family: 'Gaegu', cursive; }
+
+.kc-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 13px;
+  background: #0f1113;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  transition: border-color 0.14s;
+}
+.kc-search:focus-within { border-color: var(--acc); }
+.kc-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--ink);
+  font-family: 'Patrick Hand', cursive;
+  font-size: 16px;
+  padding: 11px 0;
+}
+
+.kc-section-label {
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: 'Gaegu', cursive;
+  padding: 2px 4px;
+}
+
+.kc-history {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow-y: auto;
+  min-height: 0;
+  margin: 0 -7px;
+  padding: 0 7px;
+}
+.kc-hist-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 13px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.kc-hist-item:hover { background: var(--panel); }
+.kc-hist-item.active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accSoft);
+  border-radius: 13px;
+}
+.kc-hist-item.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--acc);
+  border-radius: 3px;
+}
+.kc-hist-avatar { position: relative; width: 36px; height: 36px; font-size: 16px; }
+.kc-hist-name {
+  position: relative;
+  flex: 1 1 auto;
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kc-hist-more {
+  position: relative;
+  flex: 0 0 auto;
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  visibility: hidden;
+}
+.kc-hist-item:hover .kc-hist-more { visibility: visible; }
+.kc-hist-more:hover { background: var(--line2); color: var(--ink); }
+
+.kc-settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  color: var(--dim);
+  font-family: 'Patrick Hand', cursive;
+  font-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.14s, color 0.14s;
+}
+.kc-settings-btn:hover { border-color: var(--line2); color: var(--ink); }
+
+/* ---------- Main page (pickup) ---------- */
+.kc-main-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 26px 30px 16px;
+}
+.kc-title { font-family: 'Gaegu', cursive; font-weight: 700; font-size: 30px; line-height: 1; }
+.kc-subtitle { color: var(--muted); font-size: 16px; margin-top: 5px; }
+.kc-filters { display: flex; gap: 9px; margin-left: auto; }
+.kc-chip {
+  padding: 7px 15px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font-size: 15px;
+  color: var(--dim);
+  cursor: pointer;
+  background: none;
+  font-family: 'Patrick Hand', cursive;
+  transition: border-color 0.14s;
+}
+.kc-chip:hover { border-color: var(--line2); }
+.kc-chip.active { border-color: var(--acc); background: var(--accSoft); color: var(--accB); }
+
+.kc-grid-wrap { flex: 1 1 auto; overflow-y: auto; min-height: 0; padding: 8px 30px 32px; }
+.kc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(198px, 1fr));
+  gap: 18px;
+}
+.kc-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.14s, border-color 0.14s, box-shadow 0.14s;
+}
+.kc-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--acc);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+}
+.kc-card-avatar {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 30%;
+  background: radial-gradient(130% 130% at 28% 20%, #2f2849, #181a20);
+  border: 1px solid var(--line2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Gaegu', cursive;
+  font-weight: 700;
+  font-size: 46px;
+  color: rgba(231, 233, 234, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.kc-card-name { font-family: 'Gaegu', cursive; font-weight: 700; font-size: 21px; line-height: 1.05; }
+.kc-card-info {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---------- Chat ---------- */
+.kc-chat-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 26px;
+  border-bottom: 1px solid var(--line);
+}
+.kc-chat-head-avatar { width: 38px; height: 38px; font-size: 17px; }
+.kc-chat-name { font-family: 'Gaegu', cursive; font-weight: 700; font-size: 20px; line-height: 1; }
+.kc-status { display: flex; align-items: center; gap: 7px; margin-left: 8px; color: var(--muted); font-size: 14px; }
+.kc-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--acc);
+  box-shadow: 0 0 7px var(--acc);
+}
+
+.kc-messages-wrap { flex: 1 1 auto; overflow-y: auto; min-height: 0; padding: 22px 26px; }
+.kc-messages { display: flex; flex-direction: column; gap: 18px; }
+.kc-msg-row {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  max-width: 76%;
+  align-self: flex-start;
+}
+.kc-msg-row.user { align-self: flex-end; }
+.kc-msg-avatar { width: 40px; height: 40px; font-size: 17px; }
+.kc-msg-col { display: flex; flex-direction: column; gap: 5px; }
+.kc-msg-author { font-size: 13px; color: var(--muted); margin-left: 3px; }
+.kc-bubble {
+  padding: 12px 16px;
+  background: var(--bub);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #fff;
+  box-shadow: var(--shadow);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.kc-bubble.user { background: var(--accSoft); border-color: var(--acc); }
+
+.kc-typing { display: flex; gap: 5px; align-items: center; padding: 15px 18px; background: var(--bub); border: 1px solid var(--line); border-radius: 16px; }
+.kc-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); animation: kc-typing 1.1s infinite; }
+.kc-typing span:nth-child(2) { animation-delay: 0.18s; }
+.kc-typing span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes kc-typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+.kc-composer {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 15px 26px;
+  border-top: 1px solid var(--line);
+}
+.kc-composer input {
+  flex: 1 1 auto;
+  padding: 14px 19px;
+  background: #0f1113;
+  border: 1px solid var(--line2);
+  border-radius: 24px;
+  color: var(--ink);
+  font-family: 'Patrick Hand', cursive;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.14s;
+}
+.kc-composer input:focus { border-color: var(--acc); }
+.kc-send {
+  flex: 0 0 auto;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--acc);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px oklch(0.66 0.2 300 / 0.4);
+  transition: background 0.14s, transform 0.12s;
+}
+.kc-send:hover { background: var(--accB); transform: translateY(-1px); }
+.kc-send:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+/* ---------- Right panel ---------- */
+.kc-rpanel {
+  flex: 0 0 288px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 19px;
+  background: var(--side);
+  border-left: 1px solid var(--line);
+  min-height: 0;
+}
+.kc-rpanel-head { display: flex; align-items: center; gap: 13px; }
+.kc-rpanel-avatar { width: 50px; height: 50px; font-size: 22px; }
+.kc-rpanel-name { font-family: 'Gaegu', cursive; font-weight: 700; font-size: 21px; line-height: 1.05; }
+.kc-rpanel-info { font-size: 15px; color: var(--dim); line-height: 1.4; }
+.kc-personas-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-hand-sm);
+  color: var(--muted);
+  font-family: 'Patrick Hand', cursive;
+  font-size: 17px;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.kc-personas-hint { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.3; }
+
+/* ---------- Modals ---------- */
+.kc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.kc-modal {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line2);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+.kc-modal--settings { width: min(760px, 54vw); min-width: 460px; height: min(640px, 72vh); }
+.kc-modal--new { width: min(720px, 52vw); min-width: 440px; height: min(680px, 74vh); }
+.kc-modal-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 18px 22px;
+}
+.kc-modal-title { font-family: 'Gaegu', cursive; font-weight: 700; font-size: 23px; }
+.kc-modal-close {
+  margin-left: auto;
+  width: 33px;
+  height: 33px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid var(--line2);
+  color: var(--dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.kc-modal-close:hover { border-color: var(--ink); color: var(--ink); }
+.kc-divider { flex: 0 0 auto; height: 1px; background: var(--line2); }
+.kc-modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.kc-modal-body--new { padding: 22px; gap: 17px; }
+.kc-modal-foot {
+  flex: 0 0 auto;
+  display: flex;
+  padding: 15px 22px;
+  border-top: 1px solid var(--line);
+}
+
+.kc-field { display: flex; flex-direction: column; gap: 7px; }
+.kc-field-label { font-size: 16px; }
+.kc-field-note { color: var(--muted); font-size: 13px; }
+.kc-input,
+.kc-textarea,
+.kc-select {
+  padding: 11px 13px;
+  background: #0f1113;
+  border: 1px solid var(--line2);
+  border-radius: 11px;
+  color: var(--ink);
+  font-family: 'Patrick Hand', cursive;
+  font-size: 16px;
+  outline: none;
+}
+.kc-input:focus,
+.kc-textarea:focus,
+.kc-select:focus { border-color: var(--acc); }
+.kc-textarea { resize: vertical; line-height: 1.35; }
+.kc-select { accent-color: oklch(0.66 0.2 300); }
+.kc-range { width: 100%; accent-color: oklch(0.66 0.2 300); }
+.kc-rangerow { display: flex; font-size: 16px; }
+.kc-rangerow .val { margin-left: auto; color: var(--dim); }
+
+.kc-endpoint-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.kc-endpoint-row .label { font-size: 17px; flex: 0 0 auto; }
+.kc-endpoint-input { flex: 1 1 240px; min-width: 200px; padding: 10px 13px; }
+.kc-test-btn {
+  flex: 0 0 auto;
+  padding: 10px 20px;
+  background: var(--accSoft);
+  border: 1px solid var(--acc);
+  border-radius: 11px;
+  color: var(--accB);
+  font-family: 'Patrick Hand', cursive;
+  font-size: 16px;
+  cursor: pointer;
+}
+.kc-test-btn:hover { background: oklch(0.66 0.2 300 / 0.26); }
+.kc-status-ok { margin-top: 9px; font-size: 14px; color: var(--accB); }
+.kc-status-wait { margin-top: 9px; font-size: 14px; color: var(--muted); }
+
+.kc-model-section { display: flex; flex-direction: column; gap: 19px; }
+.kc-locked { opacity: 0.4; pointer-events: none; filter: grayscale(0.5); }
+.kc-advanced { border: 1px solid var(--line2); border-radius: 14px; overflow: hidden; }
+.kc-advanced-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 15px;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-family: 'Patrick Hand', cursive;
+  font-size: 16px;
+  cursor: pointer;
+  text-align: left;
+}
+.kc-advanced-toggle:hover { background: var(--panel2); }
+.kc-advanced-toggle .chev { color: var(--muted); font-size: 14px; }
+.kc-advanced-body { display: flex; flex-direction: column; gap: 17px; padding: 6px 15px 17px; }
+
+.kc-primary-btn {
+  margin-left: auto;
+  padding: 12px 26px;
+  background: var(--acc);
+  border: none;
+  border-radius: var(--radius-hand-sm);
+  color: #fff;
+  font-family: 'Patrick Hand', cursive;
+  font-size: 17px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px oklch(0.66 0.2 300 / 0.4);
+  transition: background 0.14s;
+}
+.kc-primary-btn:hover { background: var(--accB); }
+.kc-primary-btn--pill { border-radius: 30px; padding: 13px 32px; font-size: 18px; box-shadow: 0 4px 16px oklch(0.66 0.2 300 / 0.45); }
+
+.kc-avatar-upload-wrap { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+.kc-avatar-upload {
+  width: 106px;
+  height: 106px;
+  border-radius: 50%;
+  border: 1px solid var(--line2);
+  background: radial-gradient(130% 130% at 30% 22%, #2a2740, #14161b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.14s;
+  overflow: hidden;
+  padding: 0;
+}
+.kc-avatar-upload:hover { border-color: var(--acc); }
+.kc-avatar-upload img { width: 100%; height: 100%; object-fit: cover; }
+.kc-upload-hint { font-size: 14px; color: var(--muted); }

@@ -1,0 +1,94 @@
+/* ============================================================
+   Tauri command bridge.
+
+   Every function here is a thin typed wrapper around
+   `invoke('<command>', ...)`. The matching Rust side lives in
+   `src-tauri/src/` — see README.md for the `#[tauri::command]`
+   signatures these expect.
+
+   Keeping all `invoke` calls in ONE file means the UI never
+   touches Tauri directly: easy to mock in tests / Storybook,
+   and a single place to evolve the contract.
+   ============================================================ */
+
+import { invoke } from '@tauri-apps/api/core';
+import type {
+  Character,
+  NewCharacterInput,
+  ChatMessage,
+  HistoryItem,
+  ModelSettings,
+  EndpointTestResult,
+} from './types';
+
+// ---- Characters ----------------------------------------------------------
+
+export function listCharacters(): Promise<Character[]> {
+  return invoke('list_characters');
+}
+
+export function getCharacter(id: string): Promise<Character> {
+  return invoke('get_character', { id });
+}
+
+export function createCharacter(input: NewCharacterInput): Promise<Character> {
+  return invoke('create_character', { input });
+}
+
+// ---- History / conversations --------------------------------------------
+
+export function listHistory(): Promise<HistoryItem[]> {
+  return invoke('list_history');
+}
+
+export function listMessages(conversationId: string): Promise<ChatMessage[]> {
+  return invoke('list_messages', { conversationId });
+}
+
+/**
+ * Send a user message and get the assistant's reply.
+ *
+ * This is the simple request/response form. For token streaming,
+ * see `streamMessage` below and the README's events section.
+ */
+export function sendMessage(
+  conversationId: string,
+  content: string,
+): Promise<ChatMessage> {
+  return invoke('send_message', { conversationId, content });
+}
+
+// ---- Settings / model ----------------------------------------------------
+
+export function getSettings(): Promise<ModelSettings> {
+  return invoke('get_settings');
+}
+
+export function saveSettings(settings: ModelSettings): Promise<void> {
+  return invoke('save_settings', { settings });
+}
+
+export function testEndpoint(endpoint: string): Promise<EndpointTestResult> {
+  return invoke('test_endpoint', { endpoint });
+}
+
+export function loadModel(settings: ModelSettings): Promise<void> {
+  return invoke('load_model', { settings });
+}
+
+// ---- Streaming (optional) -----------------------------------------------
+//
+// For live token streaming, have the Rust command emit events
+// (e.g. `chat://token` and `chat://done`) and listen with
+// `@tauri-apps/api/event`'s `listen`. Example consumer:
+//
+//   import { listen } from '@tauri-apps/api/event';
+//   const un = await listen<string>('chat://token', e => append(e.payload));
+//
+// `streamMessage` just kicks off the backend job; tokens arrive via events.
+export function streamMessage(
+  conversationId: string,
+  content: string,
+): Promise<void> {
+  return invoke('stream_message', { conversationId, content });
+}
