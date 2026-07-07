@@ -97,10 +97,11 @@ pub fn list_history(state: State<'_, AppState>) -> Result<Vec<HistoryItem>, Stri
     let mut stmt = db
         .conn
         .prepare(
-            "SELECT cv.id, cv.character_id, c.name
+            "SELECT cv.id, cv.character_id, c.name, c.avatar_path,
+                    COALESCE(cv.last_message_at, cv.created_at) AS ts
              FROM conversations cv
              JOIN characters c ON c.id = cv.character_id
-             ORDER BY COALESCE(cv.last_message_at, cv.created_at) DESC",
+             ORDER BY ts DESC",
         )
         .map_err(|e| e.to_string())?;
     let rows = stmt
@@ -109,11 +110,18 @@ pub fn list_history(state: State<'_, AppState>) -> Result<Vec<HistoryItem>, Stri
                 id: r.get(0)?,
                 character_id: r.get(1)?,
                 name: r.get(2)?,
+                avatar: r.get::<_, Option<String>>(3)?,
+                last_message_at: r.get(4)?,
             })
         })
         .map_err(|e| e.to_string())?;
-    rows.collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(|e| e.to_string())
+    let mut items = rows
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| e.to_string())?;
+    for h in &mut items {
+        h.avatar = absolute_avatar(&db.avatars_dir, h.avatar.take());
+    }
+    Ok(items)
 }
 
 #[tauri::command]
@@ -289,11 +297,15 @@ pub fn load_model(settings: ModelSettings, state: State<'_, AppState>) -> Result
 
 /// Rewrite a stored relative avatar path (`avatars/<file>`) to an absolute
 /// filesystem path the frontend turns into an asset URL via `convertFileSrc`.
+fn absolute_avatar(avatars_dir: &Path, rel: Option<String>) -> Option<String> {
+    rel.map(|r| {
+        let file = r.strip_prefix("avatars/").unwrap_or(&r).to_string();
+        avatars_dir.join(file).to_string_lossy().into_owned()
+    })
+}
+
 fn resolve_avatar(avatars_dir: &Path, c: &mut Character) {
-    if let Some(rel) = c.avatar.take() {
-        let file = rel.strip_prefix("avatars/").unwrap_or(&rel);
-        c.avatar = Some(avatars_dir.join(file).to_string_lossy().into_owned());
-    }
+    c.avatar = absolute_avatar(avatars_dir, c.avatar.take());
 }
 
 /// Build the OpenAI `messages` array: a persona system prompt followed by the

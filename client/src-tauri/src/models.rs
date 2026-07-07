@@ -69,6 +69,12 @@ pub struct HistoryItem {
     pub id: String,
     pub character_id: String,
     pub name: String,
+    /// Character avatar (absolute path from the backend; asset URL on the JS side).
+    #[serde(default)]
+    pub avatar: Option<String>,
+    /// ms epoch used to bucket the history by time (newest activity).
+    #[serde(default)]
+    pub last_message_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
