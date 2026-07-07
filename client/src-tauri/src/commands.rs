@@ -200,6 +200,37 @@ pub async fn stream_message(
     }
 }
 
+#[tauri::command]
+pub fn update_message(
+    message_id: String,
+    content: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::messages::update_content(&db.conn, &message_id, &content)
+}
+
+#[tauri::command]
+pub fn delete_message(
+    conversation_id: String,
+    message_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::messages::delete(&db.conn, &conversation_id, &message_id)
+}
+
+/// Delete all messages positioned after `message_id` (rewind the thread to it).
+#[tauri::command]
+pub fn rewind_to_message(
+    conversation_id: String,
+    message_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::messages::rewind(&db.conn, &conversation_id, &message_id)
+}
+
 // ---- Settings / model ----------------------------------------------------
 
 #[tauri::command]
