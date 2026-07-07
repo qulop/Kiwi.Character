@@ -1,18 +1,40 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Character } from '../types';
 import { initialOf } from '../types';
+import { DotsIcon, HeartIcon, HeartFilledIcon, CrossIcon } from './icons';
 
 interface MainPageProps {
   sidebar: React.ReactNode;
   characters: Character[];
   onOpenCharacter: (c: Character) => void;
+  onToggleFavorite: (c: Character) => void;
+  onDeleteCharacter: (c: Character) => void;
 }
 
 const FILTERS = ['All', 'Recent', 'Favorites'] as const;
 
 /** Character pickup screen — the grid of character cards. */
-export default function MainPage({ sidebar, characters, onOpenCharacter }: MainPageProps) {
+export default function MainPage({
+  sidebar,
+  characters,
+  onOpenCharacter,
+  onToggleFavorite,
+  onDeleteCharacter,
+}: MainPageProps) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('All');
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+
+  // Close an open card menu on any outside click / Escape.
+  useEffect(() => {
+    if (!menuFor) return;
+    const close = () => setMenuFor(null);
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [menuFor]);
 
   return (
     <div className="kc-app">
@@ -40,7 +62,18 @@ export default function MainPage({ sidebar, characters, onOpenCharacter }: MainP
         <div className="kc-grid-wrap">
           <div className="kc-grid">
             {characters.map((c) => (
-              <button key={c.id} className="kc-card" onClick={() => onOpenCharacter(c)}>
+              <div
+                key={c.id}
+                className="kc-card"
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpenCharacter(c)}
+                onKeyDown={(e) => { if (e.key === 'Enter') onOpenCharacter(c); }}
+              >
+                {c.isFavorite && (
+                  <span className="kc-card-fav" aria-label="Favourite"><HeartFilledIcon /></span>
+                )}
+
                 <div className="kc-card-avatar">
                   {c.avatar ? (
                     <img src={c.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '30%' }} />
@@ -50,7 +83,31 @@ export default function MainPage({ sidebar, characters, onOpenCharacter }: MainP
                 </div>
                 <div className="kc-card-name">{c.name}</div>
                 <div className="kc-card-info">{c.info}</div>
-              </button>
+
+                <button
+                  className="kc-card-dots"
+                  aria-label="More actions"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuFor(menuFor === c.id ? null : c.id);
+                  }}
+                >
+                  <DotsIcon />
+                </button>
+
+                {menuFor === c.id && (
+                  <div className="kc-card-menu" onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => { onToggleFavorite(c); setMenuFor(null); }}>
+                      {c.isFavorite ? <HeartFilledIcon /> : <HeartIcon />}
+                      <span>{c.isFavorite ? 'Remove favourite' : 'Mark as favourite'}</span>
+                    </button>
+                    <button className="danger" onClick={() => { onDeleteCharacter(c); setMenuFor(null); }}>
+                      <CrossIcon />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

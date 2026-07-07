@@ -129,10 +129,10 @@ after:
       _Avatars served via the asset protocol (protocol-asset feature + scope),
       resolved to asset: URLs in api.ts, rendered by a shared Avatar component.
       Compile-verified; avatars confirmed working in the app._
-- [ ] **Step 4 — Card three-dots menu: favourite & delete** → [4_character-card-actions-favorite-delete.md](4_character-card-actions-favorite-delete.md)
-      _Add a three-dots button to each card expanding to "Mark as favourite" (heart)
-      and "Delete" (cross); wire delete + favourite to the DB; show a red heart
-      overlay on favourites._
+- [x] [STEP DONE] <s>**Step 4 — Card three-dots menu: favourite & delete** → [4_character-card-actions-favorite-delete.md](4_character-card-actions-favorite-delete.md)</s>
+      _is_favorite flag + set_favorite/delete_character commands; card menu with
+      favourite/delete, red heart overlay. Compile-verified. (Favourites
+      filtering itself is Step 5.)_
 - [ ] **Step 5 — Category filters: All / Recent / Favourite** → [5_category-filters-all-recent-favourite.md](5_category-filters-all-recent-favourite.md)
       _Implement the three category buttons. Recent = created or spoken-with within
       3 days; Favourite = explicitly favourited only._

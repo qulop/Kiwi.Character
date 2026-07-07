@@ -43,3 +43,29 @@ export const UploadGlyph = () => (
     <path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="#868c91" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 );
+
+export const DotsIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="5" cy="12" r="1.9" />
+    <circle cx="12" cy="12" r="1.9" />
+    <circle cx="19" cy="12" r="1.9" />
+  </svg>
+);
+
+export const HeartIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M12 20.5S3.5 15.4 3.5 9.6A4.6 4.6 0 0 1 12 6.9a4.6 4.6 0 0 1 8.5 2.7c0 5.8-8.5 10.9-8.5 10.9z" strokeLinejoin="round" />
+  </svg>
+);
+
+export const HeartFilledIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="#ff5069" stroke="#ff5069" strokeWidth="1.4">
+    <path d="M12 20.5S3.5 15.4 3.5 9.6A4.6 4.6 0 0 1 12 6.9a4.6 4.6 0 0 1 8.5 2.7c0 5.8-8.5 10.9-8.5 10.9z" strokeLinejoin="round" />
+  </svg>
+);
+
+export const CrossIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
+    <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+  </svg>
+);

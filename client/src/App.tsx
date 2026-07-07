@@ -53,6 +53,31 @@ export default function App() {
     openCharacter(created);
   };
 
+  const toggleFavorite = async (c: Character) => {
+    const next = !c.isFavorite;
+    setCharacters((cs) => cs.map((x) => (x.id === c.id ? { ...x, isFavorite: next } : x)));
+    if (activeCharacter?.id === c.id) setActiveCharacter({ ...activeCharacter, isFavorite: next });
+    try {
+      await api.setFavorite(c.id, next);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteCharacter = async (c: Character) => {
+    setCharacters((cs) => cs.filter((x) => x.id !== c.id));
+    setHistory((h) => h.filter((x) => x.characterId !== c.id));
+    if (activeCharacter?.id === c.id) {
+      setActiveCharacter(null);
+      setPage('main');
+    }
+    try {
+      await api.deleteCharacter(c.id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const sidebar = (
     <Sidebar
       history={history}
@@ -69,7 +94,13 @@ export default function App() {
   return (
     <>
       {page === 'main' || !activeCharacter ? (
-        <MainPage sidebar={sidebar} characters={characters} onOpenCharacter={openCharacter} />
+        <MainPage
+          sidebar={sidebar}
+          characters={characters}
+          onOpenCharacter={openCharacter}
+          onToggleFavorite={toggleFavorite}
+          onDeleteCharacter={deleteCharacter}
+        />
       ) : (
         <ChatPage sidebar={sidebar} character={activeCharacter} conversationId={conversationId} />
       )}

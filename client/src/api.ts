@@ -49,6 +49,14 @@ export async function createCharacter(input: NewCharacterInput): Promise<Charact
   return withAvatarUrl(await invoke<Character>('create_character', { input }));
 }
 
+export function setFavorite(characterId: string, favorite: boolean): Promise<void> {
+  return invoke('set_favorite', { characterId, favorite });
+}
+
+export function deleteCharacter(characterId: string): Promise<void> {
+  return invoke('delete_character', { characterId });
+}
+
 // ---- History / conversations --------------------------------------------
 
 export function listHistory(): Promise<HistoryItem[]> {

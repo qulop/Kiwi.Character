@@ -13,6 +13,8 @@ export interface Character {
   appearance?: string;
   description?: string;
   initialMessage?: string;
+  /** Whether the user marked this character as a favourite. */
+  isFavorite?: boolean;
 }
 
 /** Payload for creating a new character (no id yet). */
