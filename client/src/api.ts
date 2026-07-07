@@ -26,12 +26,16 @@ import type {
  * webview can't load a raw path, so convert it to an `asset:` URL. Anything
  * that already looks like a URL (data:/http:/asset:) is left untouched.
  */
+// Turn a backend absolute path into a loadable asset: URL. Values that are
+// already URLs (data:/blob:/http(s):/asset:/tauri:) are returned untouched — and
+// a Windows path like "C:\\Users\\..." must NOT be mistaken for a scheme.
+function assetUrl<T extends string | null | undefined>(p: T): T {
+  if (!p || /^(data|blob|https?|asset|tauri):/i.test(p)) return p;
+  return convertFileSrc(p) as T;
+}
+
 function withAvatarUrl(c: Character): Character {
-  if (!c.avatar) return c;
-  // Skip values that are already loadable URLs. NB: a Windows path like
-  // "C:\\Users\\..." must NOT be treated as a scheme — only these real ones.
-  if (/^(data|blob|https?|asset|tauri):/i.test(c.avatar)) return c;
-  return { ...c, avatar: convertFileSrc(c.avatar) };
+  return c.avatar ? { ...c, avatar: assetUrl(c.avatar) } : c;
 }
 
 // ---- Characters ----------------------------------------------------------
@@ -68,8 +72,9 @@ export function deleteCharacter(characterId: string): Promise<void> {
 
 // ---- History / conversations --------------------------------------------
 
-export function listHistory(): Promise<HistoryItem[]> {
-  return invoke('list_history');
+export async function listHistory(): Promise<HistoryItem[]> {
+  const items = await invoke<HistoryItem[]>('list_history');
+  return items.map((h) => (h.avatar ? { ...h, avatar: assetUrl(h.avatar) } : h));
 }
 
 export function listMessages(conversationId: string): Promise<ChatMessage[]> {

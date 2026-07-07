@@ -1,5 +1,5 @@
 import type { HistoryItem } from '../types';
-import { initialOf } from '../types';
+import Avatar from './Avatar';
 import { SearchIcon } from './icons';
 
 interface SidebarProps {
@@ -11,6 +11,34 @@ interface SidebarProps {
   onCreate: () => void;
   onSettings: () => void;
   onSelect: (item: HistoryItem) => void;
+}
+
+const BUCKET_LABELS = [
+  'Today',
+  'Yesterday',
+  'This week',
+  'This month',
+  'This year',
+  'A while ago',
+] as const;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Which time bucket (index into BUCKET_LABELS) a timestamp falls into. */
+function bucketOf(ts: number, now: Date): number {
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfYesterday = startOfToday - DAY_MS;
+  const mondayOffset = (now.getDay() + 6) % 7; // Monday = 0
+  const startOfWeek = startOfToday - mondayOffset * DAY_MS;
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+
+  if (ts >= startOfToday) return 0;
+  if (ts >= startOfYesterday) return 1;
+  if (ts >= startOfWeek) return 2;
+  if (ts >= startOfMonth) return 3;
+  if (ts >= startOfYear) return 4;
+  return 5;
 }
 
 /** Left navigation rail — identical on the Main and Chat pages. */
@@ -27,6 +55,25 @@ export default function Sidebar({
   const filtered = search.trim()
     ? history.filter((h) => h.name.toLowerCase().includes(search.trim().toLowerCase()))
     : history;
+
+  // Group by time bucket, preserving the backend's newest-first order.
+  const now = new Date();
+  const groups: HistoryItem[][] = BUCKET_LABELS.map(() => []);
+  for (const h of filtered) groups[bucketOf(h.lastMessageAt ?? 0, now)].push(h);
+
+  const renderItem = (h: HistoryItem) => (
+    <button
+      key={h.id}
+      className={'kc-hist-item' + (h.id === activeId ? ' active' : '')}
+      onClick={() => onSelect(h)}
+    >
+      <Avatar character={{ name: h.name, avatar: h.avatar }} className="kc-hist-avatar" />
+      <span className="kc-hist-name">{h.name}</span>
+      <span className="kc-hist-more" role="button" onClick={(e) => e.stopPropagation()}>
+        ⋯
+      </span>
+    </button>
+  );
 
   return (
     <aside className="kc-side">
@@ -48,26 +95,15 @@ export default function Sidebar({
         />
       </div>
 
-      <div className="kc-section-label">History</div>
-
       <div className="kc-history">
-        {filtered.map((h) => (
-          <button
-            key={h.id}
-            className={'kc-hist-item' + (h.id === activeId ? ' active' : '')}
-            onClick={() => onSelect(h)}
-          >
-            <div className="kc-avatar kc-hist-avatar">{initialOf(h.name)}</div>
-            <span className="kc-hist-name">{h.name}</span>
-            <span
-              className="kc-hist-more"
-              role="button"
-              onClick={(e) => e.stopPropagation()}
-            >
-              ⋯
-            </span>
-          </button>
-        ))}
+        {BUCKET_LABELS.map((label, i) =>
+          groups[i].length > 0 ? (
+            <div key={label} className="kc-hist-group">
+              <div className="kc-hist-group-label">{label}</div>
+              {groups[i].map(renderItem)}
+            </div>
+          ) : null,
+        )}
       </div>
 
       <button className="kc-settings-btn" onClick={onSettings}>

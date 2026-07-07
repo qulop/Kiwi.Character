@@ -48,6 +48,10 @@ export interface HistoryItem {
   id: string;
   characterId: string;
   name: string;
+  /** Character avatar (asset URL) or null. */
+  avatar?: string | null;
+  /** ms epoch of newest activity — used to group history by time. */
+  lastMessageAt?: number;
 }
 
 export interface ModelSettings {

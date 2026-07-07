@@ -151,6 +151,11 @@ after:
 - [x] [STEP DONE] <s>**Step 9 — Like button in the chat** → [9_chat-like-button.md](9_chat-like-button.md)</s>
       _Favourite toggle in the right-panel header (right of the name): red heart
       when favourited, grey otherwise. Reuses set_favorite/toggleFavorite._
+- [x] [STEP DONE] <s>**Step 10 — History avatars + time grouping** (implemented directly, no separate spec)</s>
+      _Sidebar history shows character avatars and is grouped by time buckets
+      (Today / Yesterday / This week / This month / This year / A while ago).
+      list_history returns avatar + lastMessageAt; buckets computed client-side.
+      Compile-verified._
 
 ---
 
