@@ -343,6 +343,19 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   font-size: 17px;
   text-align: center;
 }
+/* Form validation feedback (New Character modal). */
+.kc-input--error { border-color: #ff6b6b !important; }
+.kc-field-error {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #ff6b6b;
+}
+.kc-form-error {
+  margin-right: auto;
+  align-self: center;
+  font-size: 14px;
+  color: #ff6b6b;
+}
 .kc-card { position: relative; }
 /* Red heart overlay on favourites (top-right). */
 .kc-card-fav {

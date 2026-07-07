@@ -49,6 +49,10 @@ export async function createCharacter(input: NewCharacterInput): Promise<Charact
   return withAvatarUrl(await invoke<Character>('create_character', { input }));
 }
 
+export function characterNameAvailable(name: string): Promise<boolean> {
+  return invoke('character_name_available', { name });
+}
+
 export function setFavorite(characterId: string, favorite: boolean): Promise<void> {
   return invoke('set_favorite', { characterId, favorite });
 }

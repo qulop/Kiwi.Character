@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import type { NewCharacterInput } from '../types';
+import * as api from '../api';
 import { NewCharIcon, UploadGlyph } from './icons';
 
 interface NewCharacterModalProps {
@@ -19,8 +20,29 @@ export default function NewCharacterModal({ onClose, onCreate }: NewCharacterMod
   });
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [error, setError] = useState<string | null>(null);
+  const [nameTaken, setNameTaken] = useState(false);
+  const [busy, setBusy] = useState(false);
+
   const set = <K extends keyof NewCharacterInput>(k: K, v: NewCharacterInput[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
+
+  const onNameChange = (v: string) => {
+    set('name', v);
+    setNameTaken(false);
+    setError(null);
+  };
+
+  // Early, non-blocking availability hint when the user leaves the name field.
+  const checkName = async () => {
+    const n = form.name.trim();
+    if (!n) return;
+    try {
+      setNameTaken(!(await api.characterNameAvailable(n)));
+    } catch {
+      // Ignore — the create-time check still guards against duplicates.
+    }
+  };
 
   const onPickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -30,15 +52,23 @@ export default function NewCharacterModal({ onClose, onCreate }: NewCharacterMod
     reader.readAsDataURL(file);
   };
 
-  const canCreate = form.name.trim().length > 0;
+  const canCreate = form.name.trim().length > 0 && !nameTaken && !busy;
 
   const submit = async () => {
+    const trimmed = { ...form, name: form.name.trim() };
+    if (!trimmed.name) {
+      setError('Character name is required');
+      return;
+    }
+    setError(null);
+    setBusy(true);
     try {
-      await onCreate(form);
+      await onCreate(trimmed);
     } catch (e) {
-      // Full inline error UX arrives in the name-collision step; for now keep
-      // the modal open and log so creation failures aren't swallowed.
-      console.error(e);
+      // e.g. "A character named 'John' already exists" — keep the form open.
+      setError(String(e));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -62,8 +92,9 @@ export default function NewCharacterModal({ onClose, onCreate }: NewCharacterMod
 
         <label className="kc-field">
           <span className="kc-field-label">Character Name</span>
-          <input className="kc-input" placeholder="Example: John Doe"
-            value={form.name} onChange={(e) => set('name', e.target.value)} />
+          <input className={'kc-input' + (nameTaken ? ' kc-input--error' : '')} placeholder="Example: John Doe"
+            value={form.name} onChange={(e) => onNameChange(e.target.value)} onBlur={checkName} />
+          {nameTaken && <span className="kc-field-error">That name is already taken</span>}
         </label>
 
         <label className="kc-field">
@@ -92,9 +123,10 @@ export default function NewCharacterModal({ onClose, onCreate }: NewCharacterMod
       </div>
 
       <div className="kc-modal-foot">
+        {error && <span className="kc-form-error">{error}</span>}
         <button className="kc-primary-btn kc-primary-btn--pill" disabled={!canCreate}
           onClick={submit}>
-          Create Character
+          {busy ? 'Creating…' : 'Create Character'}
         </button>
       </div>
     </div>

@@ -136,9 +136,10 @@ after:
 - [x] [STEP DONE] <s>**Step 5 — Category filters: All / Recent / Favourite** → [5_category-filters-all-recent-favourite.md](5_category-filters-all-recent-favourite.md)</s>
       _createdAt/lastMessageAt on the DTO (join); MainPage filters All / Recent
       (3-day window) / Favourites, with empty states. Compile-verified._
-- [ ] **Step 6 — Character name-collision check** → [6_character-name-collision-check.md](6_character-name-collision-check.md)
-      _Reject creating two characters with the same name, case-insensitively, at
-      both the DB and UX layers._
+- [x] [STEP DONE] <s>**Step 6 — Character name-collision check** → [6_character-name-collision-check.md](6_character-name-collision-check.md)</s>
+      _Case-insensitive uniqueness enforced in insert (+ UNIQUE mapping) and
+      surfaced inline in the modal, with a live blur pre-check. Compile-verified,
+      no warnings._
 
 ---
 
