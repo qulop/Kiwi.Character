@@ -58,3 +58,14 @@ pub fn character_id_of(conn: &Connection, conversation_id: &str) -> Result<Strin
     )
     .map_err(|e| e.to_string())
 }
+
+/// Delete a conversation (and its messages, via cascade). The character stays;
+/// opening it again re-creates a fresh conversation with the greeting.
+pub fn delete(conn: &Connection, conversation_id: &str) -> Result<(), String> {
+    conn.execute(
+        "DELETE FROM conversations WHERE id = ?1",
+        params![conversation_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}

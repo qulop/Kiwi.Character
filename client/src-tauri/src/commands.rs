@@ -243,6 +243,16 @@ pub fn delete_message(
     db::messages::delete(&db.conn, &conversation_id, &message_id)
 }
 
+/// Delete a whole conversation (chat history) but keep the character.
+#[tauri::command]
+pub fn delete_conversation(
+    conversation_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::conversations::delete(&db.conn, &conversation_id)
+}
+
 /// Delete all messages positioned after `message_id` (rewind the thread to it).
 #[tauri::command]
 pub fn rewind_to_message(

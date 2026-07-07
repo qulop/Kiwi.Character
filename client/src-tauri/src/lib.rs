@@ -39,6 +39,7 @@ pub fn run() {
             commands::update_message,
             commands::delete_message,
             commands::rewind_to_message,
+            commands::delete_conversation,
             commands::get_settings,
             commands::save_settings,
             commands::test_endpoint,
