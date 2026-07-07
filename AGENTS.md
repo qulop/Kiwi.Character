@@ -114,11 +114,11 @@ after:
 
 > Execute top to bottom. Each links to its detailed spec.
 
-- [~] **Step 0 — Chat reliability & streaming** → [0_chat-reliability-and-streaming.md](0_chat-reliability-and-streaming.md) — ⚠️ **PARTIAL / DEFERRED**
-      _Streaming infra + error surfacing implemented (committed with the baseline).
-      The LM Studio "Channel Error" is **still unresolved**; per the user's
-      decision this is revisited **after Step 6**. Do not mark `[STEP DONE]` until
-      chat works end-to-end._
+- [x] [STEP DONE] <s>**Step 0 — Chat reliability & streaming** → [0_chat-reliability-and-streaming.md](0_chat-reliability-and-streaming.md)</s>
+      _Streaming + error surfacing + hardened request. Root cause of the LM Studio
+      "Channel Error" found: chat templates (Qwen3) reject an assistant greeting
+      before the first user turn. Fixed by dropping leading assistant messages
+      from the model request. Confirmed working end-to-end._
 - [x] [STEP DONE] <s>**Step 1 — Database interlayer** → [1_database-interlayer.md](1_database-interlayer.md)</s>
       _SQLite (`rusqlite` bundled) with schema/migrations, per-entity
       repositories, and all commands backed by the DB. Seed data kept.

@@ -261,7 +261,21 @@ fn build_request(
         role: "system".into(),
         content: build_system_prompt(character, settings),
     }];
+
+    // Most chat templates (e.g. Qwen3) require the first non-system message to
+    // be from the user and error otherwise ("No user query found in messages").
+    // Our conversations open with a seeded assistant greeting, so skip any
+    // leading assistant messages until the first user turn. The greeting still
+    // lives in the DB and is shown in the UI — it's just not sent to the model.
+    let mut seen_user = false;
     for m in history {
+        if !seen_user {
+            if m.role == "user" {
+                seen_user = true;
+            } else {
+                continue;
+            }
+        }
         req_msgs.push(ChatReqMsg {
             role: m.role.clone(),
             content: m.content.clone(),
