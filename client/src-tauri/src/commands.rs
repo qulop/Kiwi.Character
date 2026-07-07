@@ -5,6 +5,8 @@
 //! All persistence goes through the `db` repositories. The golden rule: never
 //! hold the DB `MutexGuard` across an `.await` — snapshot, drop, await, re-lock.
 
+use std::path::Path;
+
 use tauri::{AppHandle, Emitter, State};
 
 use crate::db;
@@ -19,13 +21,20 @@ use crate::state::AppState;
 #[tauri::command]
 pub fn list_characters(state: State<'_, AppState>) -> Result<Vec<Character>, String> {
     let db = state.db.lock().unwrap();
-    db::characters::list(&db.conn)
+    let mut chars = db::characters::list(&db.conn)?;
+    for c in &mut chars {
+        resolve_avatar(&db.avatars_dir, c);
+    }
+    Ok(chars)
 }
 
 #[tauri::command]
 pub fn get_character(id: String, state: State<'_, AppState>) -> Result<Character, String> {
     let db = state.db.lock().unwrap();
-    db::characters::get(&db.conn, &id)?.ok_or_else(|| format!("Character '{id}' not found"))
+    let mut c =
+        db::characters::get(&db.conn, &id)?.ok_or_else(|| format!("Character '{id}' not found"))?;
+    resolve_avatar(&db.avatars_dir, &mut c);
+    Ok(c)
 }
 
 #[tauri::command]
@@ -34,7 +43,9 @@ pub fn create_character(
     state: State<'_, AppState>,
 ) -> Result<Character, String> {
     let db = state.db.lock().unwrap();
-    db::characters::insert(&db.conn, &db.avatars_dir, input)
+    let mut c = db::characters::insert(&db.conn, &db.avatars_dir, input)?;
+    resolve_avatar(&db.avatars_dir, &mut c);
+    Ok(c)
 }
 
 // ---- History / conversations --------------------------------------------
@@ -203,6 +214,15 @@ pub fn load_model(settings: ModelSettings, state: State<'_, AppState>) -> Result
 }
 
 // ---- Helpers (not commands) ----------------------------------------------
+
+/// Rewrite a stored relative avatar path (`avatars/<file>`) to an absolute
+/// filesystem path the frontend turns into an asset URL via `convertFileSrc`.
+fn resolve_avatar(avatars_dir: &Path, c: &mut Character) {
+    if let Some(rel) = c.avatar.take() {
+        let file = rel.strip_prefix("avatars/").unwrap_or(&rel);
+        c.avatar = Some(avatars_dir.join(file).to_string_lossy().into_owned());
+    }
+}
 
 /// Build the OpenAI `messages` array: a persona system prompt followed by the
 /// stored conversation thread.
