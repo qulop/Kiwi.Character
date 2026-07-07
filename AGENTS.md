@@ -125,9 +125,10 @@ after:
       Not runtime-verified (SAC blocks the build)._
 - [x] [STEP DONE] <s>**Step 2 — Jump to chat after character creation** → [2_navigate-to-chat-after-create.md](2_navigate-to-chat-after-create.md)</s>
       _Creating a character now navigates straight into its chat; modal stays open on error._
-- [ ] **Step 3 — Character avatar on the chat page** → [3_character-avatar-on-chat-page.md](3_character-avatar-on-chat-page.md)
-      _Render the character's uploaded avatar in the chat header, message rows, and
-      right panel (not just on the selection page)._
+- [x] [STEP DONE] <s>**Step 3 — Character avatar on the chat page** → [3_character-avatar-on-chat-page.md](3_character-avatar-on-chat-page.md)</s>
+      _Avatars served via the asset protocol (protocol-asset feature + scope),
+      resolved to asset: URLs in api.ts, rendered by a shared Avatar component.
+      Compile-verified; avatars confirmed working in the app._
 - [ ] **Step 4 — Card three-dots menu: favourite & delete** → [4_character-card-actions-favorite-delete.md](4_character-card-actions-favorite-delete.md)
       _Add a three-dots button to each card expanding to "Mark as favourite" (heart)
       and "Delete" (cross); wire delete + favourite to the DB; show a red heart

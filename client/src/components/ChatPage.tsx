@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
 import type { Character, ChatMessage } from '../types';
-import { initialOf } from '../types';
 import * as api from '../api';
 import { CHAT_TOKEN, CHAT_DONE, CHAT_ERROR } from '../events';
+import Avatar from './Avatar';
 import { SendIcon, UserGlyph, PersonaGlyph } from './icons';
 
 interface ChatPageProps {
@@ -106,7 +106,7 @@ export default function ChatPage({ sidebar, character, conversationId }: ChatPag
 
       <main className="kc-main">
         <div className="kc-chat-head">
-          <div className="kc-avatar kc-chat-head-avatar">{initialOf(character.name)}</div>
+          <Avatar character={character} className="kc-chat-head-avatar" />
           <div className="kc-chat-name">{character.name}</div>
           <div className="kc-status"><span className="kc-status-dot" /> local model</div>
         </div>
@@ -119,7 +119,7 @@ export default function ChatPage({ sidebar, character, conversationId }: ChatPag
                 // streaming — the typing indicator stands in for it.
                 m.content === '' ? null : (
                 <div key={m.id} className="kc-msg-row">
-                  <div className="kc-avatar kc-msg-avatar">{initialOf(character.name)}</div>
+                  <Avatar character={character} className="kc-msg-avatar" />
                   <div className="kc-msg-col">
                     <span className="kc-msg-author">{character.name}</span>
                     <div className="kc-bubble">{m.content}</div>
@@ -139,7 +139,7 @@ export default function ChatPage({ sidebar, character, conversationId }: ChatPag
 
             {awaitingFirstToken && (
               <div className="kc-msg-row">
-                <div className="kc-avatar kc-msg-avatar">{initialOf(character.name)}</div>
+                <Avatar character={character} className="kc-msg-avatar" />
                 <div className="kc-msg-col">
                   <span className="kc-msg-author">{character.name}</span>
                   <div className="kc-typing"><span /><span /><span /></div>
@@ -164,7 +164,7 @@ export default function ChatPage({ sidebar, character, conversationId }: ChatPag
 
       <aside className="kc-rpanel">
         <div className="kc-rpanel-head">
-          <div className="kc-avatar kc-rpanel-avatar">{initialOf(character.name)}</div>
+          <Avatar character={character} className="kc-rpanel-avatar" />
           <div className="kc-rpanel-name">{character.name}</div>
         </div>
         <div className="kc-rpanel-info">{character.info}</div>

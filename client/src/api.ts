@@ -11,7 +11,7 @@
    and a single place to evolve the contract.
    ============================================================ */
 
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import type {
   Character,
   NewCharacterInput,
@@ -21,18 +21,32 @@ import type {
   EndpointTestResult,
 } from './types';
 
+/**
+ * The backend returns `avatar` as an absolute filesystem path (or null). The
+ * webview can't load a raw path, so convert it to an `asset:` URL. Anything
+ * that already looks like a URL (data:/http:/asset:) is left untouched.
+ */
+function withAvatarUrl(c: Character): Character {
+  if (!c.avatar) return c;
+  // Skip values that are already loadable URLs. NB: a Windows path like
+  // "C:\\Users\\..." must NOT be treated as a scheme — only these real ones.
+  if (/^(data|blob|https?|asset|tauri):/i.test(c.avatar)) return c;
+  return { ...c, avatar: convertFileSrc(c.avatar) };
+}
+
 // ---- Characters ----------------------------------------------------------
 
-export function listCharacters(): Promise<Character[]> {
-  return invoke('list_characters');
+export async function listCharacters(): Promise<Character[]> {
+  const cs = await invoke<Character[]>('list_characters');
+  return cs.map(withAvatarUrl);
 }
 
-export function getCharacter(id: string): Promise<Character> {
-  return invoke('get_character', { id });
+export async function getCharacter(id: string): Promise<Character> {
+  return withAvatarUrl(await invoke<Character>('get_character', { id }));
 }
 
-export function createCharacter(input: NewCharacterInput): Promise<Character> {
-  return invoke('create_character', { input });
+export async function createCharacter(input: NewCharacterInput): Promise<Character> {
+  return withAvatarUrl(await invoke<Character>('create_character', { input }));
 }
 
 // ---- History / conversations --------------------------------------------
