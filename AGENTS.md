@@ -140,6 +140,16 @@ after:
       _Case-insensitive uniqueness enforced in insert (+ UNIQUE mapping) and
       surfaced inline in the modal, with a live blur pre-check. Compile-verified,
       no warnings._
+- [ ] **Step 7 — Message actions: copy / remove / rewind** → [7_message-actions-delete-copy-rewind.md](7_message-actions-delete-copy-rewind.md)
+      _Per-message three-dots menu. All messages: Copy, Remove. User messages
+      also: "Rewind to here" (delete everything below; no auto-regenerate)._
+- [ ] **Step 8 — Character Info modal (view & edit)** → [8_character-info-modal.md](8_character-info-modal.md)
+      _Clicking the avatar/name in either header opens a pre-filled, editable
+      copy of the create form ("Save" button); backed by a new update_character
+      command. Reuses one generalized CharacterFormModal for create + edit._
+- [ ] **Step 9 — Like button in the chat** → [9_chat-like-button.md](9_chat-like-button.md)
+      _Favourite toggle in the right-panel header (right of the name): red heart
+      when favourited, grey otherwise. Reuses set_favorite. Do after Step 8._
 
 ---
 
