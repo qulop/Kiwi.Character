@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="32%" cy="20%" r="90%">
+      <stop offset="0%" stop-color="oklch(0.22 0.03 300)"></stop>
+      <stop offset="100%" stop-color="oklch(0.12 0.02 300)"></stop>
+    </radialGradient>
+    <radialGradient id="feather" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="oklch(0.72 0.19 300)"></stop>
+      <stop offset="100%" stop-color="oklch(0.5 0.2 300)"></stop>
+    </radialGradient>
+  </defs>
+
+  
+  <rect x="4" y="4" width="192" height="192" rx="46" fill="url(#bg)"></rect>
+  <rect x="4" y="4" width="192" height="192" rx="46" fill="none" stroke="oklch(0.66 0.2 300 / 0.35)" stroke-width="1.5"></rect>
+
+  
+  <path d="M 42 122&#xA;           C 40 88 66 56 101 51&#xA;           C 122 48 140 57 152 70&#xA;           C 163 82 168 94 166 100&#xA;           C 180 98 191 103 189 109&#xA;           C 186 114 173 112 163 111&#xA;           C 167 124 163 140 149 152&#xA;           C 129 167 99 170 74 160&#xA;           C 49 150 40 140 42 122 Z" fill="url(#feather)" stroke="oklch(0.85 0.05 300 / 0.55)" stroke-width="2" stroke-linejoin="round"></path>
+
+  
+  <circle cx="112" cy="75" r="5" fill="oklch(0.97 0.01 300)"></circle>
+  <circle cx="113.5" cy="73.5" r="1.6" fill="oklch(0.2 0.02 300)"></circle>
+
+  
+  <path d="M 62 92 C 68 88 76 87 82 90" fill="none" stroke="oklch(0.9 0.04 300 / 0.5)" stroke-width="2.5" stroke-linecap="round"></path>
+  <path d="M 58 112 C 65 108 74 107 81 111" fill="none" stroke="oklch(0.9 0.04 300 / 0.4)" stroke-width="2.5" stroke-linecap="round"></path>
+  <path d="M 64 132 C 71 129 80 128 87 132" fill="none" stroke="oklch(0.9 0.04 300 / 0.35)" stroke-width="2.5" stroke-linecap="round"></path>
+
+  
+  <path d="M 85 159 C 84 168 83 174 80 179" fill="none" stroke="oklch(0.9 0.03 300 / 0.7)" stroke-width="3" stroke-linecap="round"></path>
+  <path d="M 108 161 C 109 169 110 175 113 180" fill="none" stroke="oklch(0.9 0.03 300 / 0.7)" stroke-width="3" stroke-linecap="round"></path>
+  <path d="M 74 181 L 87 181" stroke="oklch(0.9 0.03 300 / 0.7)" stroke-width="3" stroke-linecap="round"></path>
+  <path d="M 107 183 L 120 183" stroke="oklch(0.9 0.03 300 / 0.7)" stroke-width="3" stroke-linecap="round"></path>
+</svg>

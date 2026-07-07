@@ -119,7 +119,7 @@ export default function Sidebar({
   return (
     <aside className="kc-side">
       <button className="kc-brand" onClick={onBrand}>
-        <div className="kc-logo">K</div>
+        <img className="kc-logo" src="/icon.svg" alt="" />
         <span className="kc-brand-name">Kiwi.Character</span>
       </button>
 
