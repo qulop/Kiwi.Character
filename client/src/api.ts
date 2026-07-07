@@ -144,3 +144,12 @@ export function streamMessage(
 ): Promise<void> {
   return invoke('stream_message', { conversationId, content });
 }
+
+/**
+ * Empty "continue" send: no user content. If the last message is the AI's, it
+ * continues via a hidden technical message; if the last is the user's, it just
+ * replies. Tokens arrive via the same `chat://*` events as `streamMessage`.
+ */
+export function streamContinue(conversationId: string): Promise<void> {
+  return invoke('stream_continue', { conversationId });
+}

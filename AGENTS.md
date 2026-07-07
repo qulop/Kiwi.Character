@@ -163,11 +163,11 @@ after:
 - [x] [STEP DONE] <s>**Step 12 — Auto-growing message input** (implemented directly, no separate spec)</s>
       _Composer is a textarea that grows with content (capped at 160px, then
       scrolls). Enter sends, Shift+Enter inserts a newline. Compile-verified._
-- [ ] **Step 13 — Empty "continue" send** (implemented directly, no separate spec)
-      _Sending an empty message: if the last message is the AI's, add a hidden
-      technical user message so the model continues its previous message (not
-      shown in the UI); if the last message is the user's (after rewind/delete),
-      just generate a reply for it. Needs a hidden flag on messages._
+- [x] [STEP DONE] <s>**Step 13 — Empty "continue" send** (implemented directly, no separate spec)</s>
+      _Empty/whitespace send: if the last turn is the AI's, a hidden technical
+      user message makes it continue (new bubble, message not shown); if the last
+      turn is the user's, it just replies. Added a hidden flag on messages
+      (schema v2 migration) + stream_continue command. Compile-verified._
 
 ---
 

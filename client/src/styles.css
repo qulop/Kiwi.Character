@@ -624,10 +624,24 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   outline: none;
   resize: none;
   max-height: 160px;
-  overflow-y: auto;
+  overflow-y: hidden; /* toggled to auto in JS only when the cap is exceeded */
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   transition: border-color 0.14s;
 }
 .kc-composer textarea:focus { border-color: var(--acc); }
+/* Slim, unobtrusive scrollbar that stays clear of the rounded corners. */
+.kc-composer textarea::-webkit-scrollbar { width: 6px; }
+.kc-composer textarea::-webkit-scrollbar-thumb {
+  background: var(--line2);
+  border-radius: 3px;
+}
+.kc-composer textarea::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 12px 0;
+}
 .kc-send {
   flex: 0 0 auto;
   width: 50px;

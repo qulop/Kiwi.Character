@@ -71,21 +71,25 @@ export default function ChatPage({
   }, [menuMsg]);
 
   const send = async () => {
+    if (typing) return;
     const content = draft.trim();
-    if (!content || typing) return;
+    // Empty (or whitespace-only) send = "continue": the AI extends its last
+    // message (or, after a rewind, replies to the last user message). Requires
+    // at least one message to continue from.
+    const isContinue = content === '';
+    if (isContinue && messages.length === 0) return;
     setDraft('');
 
-    // Optimistic user bubble + an empty assistant bubble we stream tokens into.
-    const userMsg: ChatMessage = {
-      id: 'local-' + Date.now(),
-      role: 'user',
-      content,
-      createdAt: Date.now(),
-    };
+    // For a normal send, add an optimistic user bubble. For a continue send, add
+    // nothing for the user (the technical message stays hidden). Both add an
+    // empty assistant bubble to stream tokens into.
     const assistantId = 'stream-' + Date.now();
+    const optimistic: ChatMessage[] = isContinue
+      ? []
+      : [{ id: 'local-' + Date.now(), role: 'user', content, createdAt: Date.now() }];
     setMessages((m) => [
       ...m,
-      userMsg,
+      ...optimistic,
       { id: assistantId, role: 'assistant', content: '', createdAt: Date.now() },
     ]);
     setTyping(true);
@@ -124,7 +128,8 @@ export default function ChatPage({
     );
 
     try {
-      await api.streamMessage(conversationId, content);
+      if (isContinue) await api.streamContinue(conversationId);
+      else await api.streamMessage(conversationId, content);
     } catch {
       // The error is surfaced via the CHAT_ERROR event; if the invoke itself
       // rejected before any event fired, make sure we stop the typing state.
@@ -138,11 +143,14 @@ export default function ChatPage({
   };
 
   // Grow the composer textarea with its content (capped by CSS max-height).
+  // Keep the scrollbar hidden until the content actually exceeds the cap.
   useEffect(() => {
     const el = composerRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+    const full = el.scrollHeight;
+    el.style.height = Math.min(full, 160) + 'px';
+    el.style.overflowY = full > 160 ? 'auto' : 'hidden';
   }, [draft]);
 
   const copyMessage = (m: ChatMessage) => {
@@ -298,7 +306,7 @@ export default function ChatPage({
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKey}
           />
-          <button className="kc-send" onClick={send} disabled={!draft.trim() || typing}>
+          <button className="kc-send" onClick={send} disabled={typing}>
             <SendIcon />
           </button>
         </div>
