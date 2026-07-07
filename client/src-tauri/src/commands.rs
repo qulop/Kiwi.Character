@@ -1,94 +1,81 @@
 //! Tauri commands — the contract the React frontend calls via `invoke`
 //! (see `client/src/api.ts`). JS sends camelCase arg keys; Tauri maps them to
 //! these snake_case parameters automatically.
+//!
+//! All persistence goes through the `db` repositories. The golden rule: never
+//! hold the DB `MutexGuard` across an `.await` — snapshot, drop, await, re-lock.
 
 use tauri::{AppHandle, Emitter, State};
 
+use crate::db;
 use crate::models::{
     Character, ChatMessage, EndpointTestResult, HistoryItem, ModelSettings, NewCharacterInput,
 };
 use crate::openai::{self, ChatReqMsg};
-use crate::state::{new_id, now_ms, AppState, Conversation, Store};
+use crate::state::AppState;
 
 // ---- Characters ----------------------------------------------------------
 
 #[tauri::command]
-pub fn list_characters(state: State<'_, AppState>) -> Vec<Character> {
-    state.store.lock().unwrap().characters.clone()
+pub fn list_characters(state: State<'_, AppState>) -> Result<Vec<Character>, String> {
+    let db = state.db.lock().unwrap();
+    db::characters::list(&db.conn)
 }
 
 #[tauri::command]
 pub fn get_character(id: String, state: State<'_, AppState>) -> Result<Character, String> {
-    state
-        .store
-        .lock()
-        .unwrap()
-        .characters
-        .iter()
-        .find(|c| c.id == id)
-        .cloned()
-        .ok_or_else(|| format!("Character '{id}' not found"))
+    let db = state.db.lock().unwrap();
+    db::characters::get(&db.conn, &id)?.ok_or_else(|| format!("Character '{id}' not found"))
 }
 
 #[tauri::command]
-pub fn create_character(input: NewCharacterInput, state: State<'_, AppState>) -> Character {
-    let character = Character {
-        id: new_id(),
-        name: input.name,
-        info: input.info,
-        avatar: input.avatar,
-        appearance: input.appearance,
-        description: input.description,
-        initial_message: input.initial_message,
-    };
-    state
-        .store
-        .lock()
-        .unwrap()
-        .characters
-        .insert(0, character.clone());
-    character
+pub fn create_character(
+    input: NewCharacterInput,
+    state: State<'_, AppState>,
+) -> Result<Character, String> {
+    let db = state.db.lock().unwrap();
+    db::characters::insert(&db.conn, &db.avatars_dir, input)
 }
 
 // ---- History / conversations --------------------------------------------
 
 #[tauri::command]
-pub fn list_history(state: State<'_, AppState>) -> Vec<HistoryItem> {
-    let store = state.store.lock().unwrap();
-    let mut items: Vec<HistoryItem> = store
-        .conversations
-        .values()
-        .map(|conv| {
-            let name = store
-                .characters
-                .iter()
-                .find(|c| c.id == conv.character_id)
-                .map(|c| c.name.clone())
-                .unwrap_or_else(|| "Unknown".into());
-            HistoryItem {
-                id: conv.id.clone(),
-                character_id: conv.character_id.clone(),
-                name,
-            }
+pub fn list_history(state: State<'_, AppState>) -> Result<Vec<HistoryItem>, String> {
+    let db = state.db.lock().unwrap();
+    let mut stmt = db
+        .conn
+        .prepare(
+            "SELECT cv.id, cv.character_id, c.name
+             FROM conversations cv
+             JOIN characters c ON c.id = cv.character_id
+             ORDER BY COALESCE(cv.last_message_at, cv.created_at) DESC",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(HistoryItem {
+                id: r.get(0)?,
+                character_id: r.get(1)?,
+                name: r.get(2)?,
+            })
         })
-        .collect();
-    items.sort_by(|a, b| a.name.cmp(&b.name));
-    items
+        .map_err(|e| e.to_string())?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn list_messages(conversation_id: String, state: State<'_, AppState>) -> Vec<ChatMessage> {
-    let mut store = state.store.lock().unwrap();
-    // If we can't resolve a character for this id, just hand back an empty
+pub fn list_messages(
+    conversation_id: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<ChatMessage>, String> {
+    let db = state.db.lock().unwrap();
+    // If the conversation can't be resolved (unknown character), return an empty
     // thread rather than erroring — the UI tolerates that gracefully.
-    if ensure_conversation(&mut store, &conversation_id).is_err() {
-        return Vec::new();
+    if db::conversations::ensure(&db.conn, &conversation_id).is_err() {
+        return Ok(Vec::new());
     }
-    store
-        .conversations
-        .get(&conversation_id)
-        .map(|c| c.messages.clone())
-        .unwrap_or_default()
+    db::messages::list(&db.conn, &conversation_id)
 }
 
 #[tauri::command]
@@ -97,75 +84,36 @@ pub async fn send_message(
     content: String,
     state: State<'_, AppState>,
 ) -> Result<ChatMessage, String> {
-    // 1. Record the user's message and snapshot everything we need for the
-    //    request, then drop the lock before awaiting the network call.
+    // 1. Persist the user message and snapshot context, then drop the lock.
     let (settings, character, history) = {
-        let mut store = state.store.lock().unwrap();
-        ensure_conversation(&mut store, &conversation_id)?;
+        let db = state.db.lock().unwrap();
+        db::conversations::ensure(&db.conn, &conversation_id)?;
+        db::messages::insert(&db.conn, &conversation_id, "user", &content)?;
 
-        let user_msg = ChatMessage {
-            id: new_id(),
-            role: "user".into(),
-            content,
-            created_at: Some(now_ms()),
-        };
-
-        let conv = store
-            .conversations
-            .get_mut(&conversation_id)
-            .expect("conversation ensured above");
-        conv.messages.push(user_msg);
-
-        let character_id = conv.character_id.clone();
-        let history = conv.messages.clone();
-        let settings = store.settings.clone();
-        let character = store
-            .characters
-            .iter()
-            .find(|c| c.id == character_id)
-            .cloned()
+        let character_id = db::conversations::character_id_of(&db.conn, &conversation_id)?;
+        let character = db::characters::get(&db.conn, &character_id)?
             .ok_or_else(|| format!("Character '{character_id}' not found"))?;
-
+        let history = db::messages::list(&db.conn, &conversation_id)?;
+        let settings = db::settings::get(&db.conn)?;
         (settings, character, history)
     };
 
     // 2. Build the OpenAI request: persona system prompt + full thread.
-    let mut req_msgs = vec![ChatReqMsg {
-        role: "system".into(),
-        content: build_system_prompt(&character, &settings),
-    }];
-    for m in &history {
-        req_msgs.push(ChatReqMsg {
-            role: m.role.clone(),
-            content: m.content.clone(),
-        });
-    }
+    let req_msgs = build_request(&character, &settings, &history);
 
     // 3. Call the local LLM.
     let reply_text = openai::chat_completion(&settings, req_msgs).await?;
 
     // 4. Persist and return the assistant reply.
-    let reply = ChatMessage {
-        id: new_id(),
-        role: "assistant".into(),
-        content: reply_text,
-        created_at: Some(now_ms()),
+    let reply = {
+        let db = state.db.lock().unwrap();
+        db::messages::insert(&db.conn, &conversation_id, "assistant", &reply_text)?
     };
-    if let Some(conv) = state
-        .store
-        .lock()
-        .unwrap()
-        .conversations
-        .get_mut(&conversation_id)
-    {
-        conv.messages.push(reply.clone());
-    }
     Ok(reply)
 }
 
 /// Streaming counterpart to `send_message`. Emits one `chat://token` event per
 /// content delta, then `chat://done` on success or `chat://error` on failure.
-/// The user message is persisted before streaming; the assistant message after.
 #[tauri::command]
 pub async fn stream_message(
     conversation_id: String,
@@ -173,49 +121,22 @@ pub async fn stream_message(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    // 1. Persist the user's message and snapshot everything we need for the
-    //    request, then drop the lock before awaiting the network call.
+    // 1. Persist the user message and snapshot context, then drop the lock.
     let (settings, character, history) = {
-        let mut store = state.store.lock().unwrap();
-        ensure_conversation(&mut store, &conversation_id)?;
+        let db = state.db.lock().unwrap();
+        db::conversations::ensure(&db.conn, &conversation_id)?;
+        db::messages::insert(&db.conn, &conversation_id, "user", &content)?;
 
-        let user_msg = ChatMessage {
-            id: new_id(),
-            role: "user".into(),
-            content,
-            created_at: Some(now_ms()),
-        };
-
-        let conv = store
-            .conversations
-            .get_mut(&conversation_id)
-            .expect("conversation ensured above");
-        conv.messages.push(user_msg);
-
-        let character_id = conv.character_id.clone();
-        let history = conv.messages.clone();
-        let settings = store.settings.clone();
-        let character = store
-            .characters
-            .iter()
-            .find(|c| c.id == character_id)
-            .cloned()
+        let character_id = db::conversations::character_id_of(&db.conn, &conversation_id)?;
+        let character = db::characters::get(&db.conn, &character_id)?
             .ok_or_else(|| format!("Character '{character_id}' not found"))?;
-
+        let history = db::messages::list(&db.conn, &conversation_id)?;
+        let settings = db::settings::get(&db.conn)?;
         (settings, character, history)
     };
 
-    // 2. Build the OpenAI request: persona system prompt + full thread.
-    let mut req_msgs = vec![ChatReqMsg {
-        role: "system".into(),
-        content: build_system_prompt(&character, &settings),
-    }];
-    for m in &history {
-        req_msgs.push(ChatReqMsg {
-            role: m.role.clone(),
-            content: m.content.clone(),
-        });
-    }
+    // 2. Build the request.
+    let req_msgs = build_request(&character, &settings, &history);
 
     // 3. Stream, emitting one event per token.
     let app_for_tokens = app.clone();
@@ -227,20 +148,9 @@ pub async fn stream_message(
     match result {
         Ok(full) => {
             // 4a. Persist the assistant reply, then signal completion.
-            let reply = ChatMessage {
-                id: new_id(),
-                role: "assistant".into(),
-                content: full,
-                created_at: Some(now_ms()),
-            };
-            if let Some(conv) = state
-                .store
-                .lock()
-                .unwrap()
-                .conversations
-                .get_mut(&conversation_id)
             {
-                conv.messages.push(reply);
+                let db = state.db.lock().unwrap();
+                db::messages::insert(&db.conn, &conversation_id, "assistant", &full)?;
             }
             let _ = app.emit("chat://done", ());
             Ok(())
@@ -256,13 +166,15 @@ pub async fn stream_message(
 // ---- Settings / model ----------------------------------------------------
 
 #[tauri::command]
-pub fn get_settings(state: State<'_, AppState>) -> ModelSettings {
-    state.store.lock().unwrap().settings.clone()
+pub fn get_settings(state: State<'_, AppState>) -> Result<ModelSettings, String> {
+    let db = state.db.lock().unwrap();
+    db::settings::get(&db.conn)
 }
 
 #[tauri::command]
-pub fn save_settings(settings: ModelSettings, state: State<'_, AppState>) {
-    state.store.lock().unwrap().settings = settings;
+pub fn save_settings(settings: ModelSettings, state: State<'_, AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::settings::save(&db.conn, &settings)
 }
 
 #[tauri::command]
@@ -282,54 +194,34 @@ pub async fn test_endpoint(endpoint: String) -> EndpointTestResult {
 }
 
 #[tauri::command]
-pub fn load_model(settings: ModelSettings, state: State<'_, AppState>) {
-    // LM Studio / Ollama load models on first use, so there's no standard
-    // "load" call to make here. We just persist the chosen settings; the
-    // selected model is used on the next `send_message`.
-    state.store.lock().unwrap().settings = settings;
+pub fn load_model(settings: ModelSettings, state: State<'_, AppState>) -> Result<(), String> {
+    // LM Studio / Ollama load models on first use, so there's no standard "load"
+    // call. We just persist the chosen settings; the selected model is used on
+    // the next send/stream.
+    let db = state.db.lock().unwrap();
+    db::settings::save(&db.conn, &settings)
 }
 
 // ---- Helpers (not commands) ----------------------------------------------
 
-/// Create the conversation lazily if it doesn't exist yet, seeding it with the
-/// character's greeting. Conversation ids from the frontend look like
-/// `conv-<characterId>` (see `App.tsx`).
-fn ensure_conversation(store: &mut Store, conversation_id: &str) -> Result<(), String> {
-    if store.conversations.contains_key(conversation_id) {
-        return Ok(());
-    }
-
-    let character_id = conversation_id
-        .strip_prefix("conv-")
-        .unwrap_or(conversation_id)
-        .to_string();
-
-    let character = store
-        .characters
-        .iter()
-        .find(|c| c.id == character_id)
-        .cloned()
-        .ok_or_else(|| format!("No character '{character_id}' for '{conversation_id}'"))?;
-
-    let mut messages = Vec::new();
-    if !character.initial_message.is_empty() {
-        messages.push(ChatMessage {
-            id: new_id(),
-            role: "assistant".into(),
-            content: character.initial_message.clone(),
-            created_at: Some(now_ms()),
+/// Build the OpenAI `messages` array: a persona system prompt followed by the
+/// stored conversation thread.
+fn build_request(
+    character: &Character,
+    settings: &ModelSettings,
+    history: &[ChatMessage],
+) -> Vec<ChatReqMsg> {
+    let mut req_msgs = vec![ChatReqMsg {
+        role: "system".into(),
+        content: build_system_prompt(character, settings),
+    }];
+    for m in history {
+        req_msgs.push(ChatReqMsg {
+            role: m.role.clone(),
+            content: m.content.clone(),
         });
     }
-
-    store.conversations.insert(
-        conversation_id.to_string(),
-        Conversation {
-            id: conversation_id.to_string(),
-            character_id,
-            messages,
-        },
-    );
-    Ok(())
+    req_msgs
 }
 
 /// Compose the system prompt that puts the model in character.
