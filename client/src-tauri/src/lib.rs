@@ -28,6 +28,8 @@ pub fn run() {
             commands::list_characters,
             commands::get_character,
             commands::create_character,
+            commands::set_favorite,
+            commands::delete_character,
             commands::list_history,
             commands::list_messages,
             commands::send_message,

@@ -16,6 +16,7 @@ fn row_to_character(r: &Row) -> rusqlite::Result<Character> {
         appearance: r.get("appearance")?,
         description: r.get("description")?,
         initial_message: r.get("initial_message")?,
+        is_favorite: r.get::<_, i64>("is_favorite")? != 0,
     })
 }
 
@@ -89,6 +90,7 @@ pub fn insert(
         appearance: input.appearance,
         description: input.description,
         initial_message: input.initial_message,
+        is_favorite: false,
     })
 }
 

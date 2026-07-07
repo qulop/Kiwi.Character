@@ -48,6 +48,22 @@ pub fn create_character(
     Ok(c)
 }
 
+#[tauri::command]
+pub fn set_favorite(
+    character_id: String,
+    favorite: bool,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::characters::set_favorite(&db.conn, &character_id, favorite)
+}
+
+#[tauri::command]
+pub fn delete_character(character_id: String, state: State<'_, AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::characters::delete(&db.conn, &db.avatars_dir, &character_id)
+}
+
 // ---- History / conversations --------------------------------------------
 
 #[tauri::command]

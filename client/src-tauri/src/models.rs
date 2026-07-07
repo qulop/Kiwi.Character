@@ -22,6 +22,8 @@ pub struct Character {
     pub description: String,
     #[serde(default)]
     pub initial_message: String,
+    #[serde(default)]
+    pub is_favorite: bool,
 }
 
 /// Payload for creating a new character (no id yet).
