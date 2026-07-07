@@ -45,14 +45,12 @@ export default function App() {
   };
 
   const createCharacter = async (input: NewCharacterInput) => {
-    try {
-      const created = await api.createCharacter(input);
-      setCharacters((cs) => [created, ...cs]);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setModal(null);
-    }
+    // Throws on failure (e.g. a duplicate name) so the modal can keep itself
+    // open and show the error; on success we jump straight into the new chat.
+    const created = await api.createCharacter(input);
+    setCharacters((cs) => [created, ...cs]);
+    setModal(null);
+    openCharacter(created);
   };
 
   const sidebar = (

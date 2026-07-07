@@ -4,7 +4,7 @@ import { NewCharIcon, UploadGlyph } from './icons';
 
 interface NewCharacterModalProps {
   onClose: () => void;
-  onCreate: (input: NewCharacterInput) => void;
+  onCreate: (input: NewCharacterInput) => void | Promise<void>;
 }
 
 /** Create-character form. Submits a NewCharacterInput to the caller. */
@@ -31,6 +31,16 @@ export default function NewCharacterModal({ onClose, onCreate }: NewCharacterMod
   };
 
   const canCreate = form.name.trim().length > 0;
+
+  const submit = async () => {
+    try {
+      await onCreate(form);
+    } catch (e) {
+      // Full inline error UX arrives in the name-collision step; for now keep
+      // the modal open and log so creation failures aren't swallowed.
+      console.error(e);
+    }
+  };
 
   return (
     <div className="kc-modal kc-modal--new" onClick={(e) => e.stopPropagation()}>
@@ -83,7 +93,7 @@ export default function NewCharacterModal({ onClose, onCreate }: NewCharacterMod
 
       <div className="kc-modal-foot">
         <button className="kc-primary-btn kc-primary-btn--pill" disabled={!canCreate}
-          onClick={() => onCreate(form)}>
+          onClick={submit}>
           Create Character
         </button>
       </div>

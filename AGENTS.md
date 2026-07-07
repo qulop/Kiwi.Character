@@ -123,8 +123,8 @@ after:
       _SQLite (`rusqlite` bundled) with schema/migrations, per-entity
       repositories, and all commands backed by the DB. Seed data kept.
       Not runtime-verified (SAC blocks the build)._
-- [ ] **Step 2 — Jump to chat after character creation** → [2_navigate-to-chat-after-create.md](2_navigate-to-chat-after-create.md)
-      _After creating a character, open the chat page with that new character._
+- [x] [STEP DONE] <s>**Step 2 — Jump to chat after character creation** → [2_navigate-to-chat-after-create.md](2_navigate-to-chat-after-create.md)</s>
+      _Creating a character now navigates straight into its chat; modal stays open on error._
 - [ ] **Step 3 — Character avatar on the chat page** → [3_character-avatar-on-chat-page.md](3_character-avatar-on-chat-page.md)
       _Render the character's uploaded avatar in the chat header, message rows, and
       right panel (not just on the selection page)._
