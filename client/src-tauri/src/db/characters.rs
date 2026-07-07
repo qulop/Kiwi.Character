@@ -148,6 +148,71 @@ pub fn set_favorite(conn: &Connection, id: &str, fav: bool) -> Result<(), String
     Ok(())
 }
 
+/// Update an existing character. `input.avatar`:
+///   - a "data:" URL -> decode, save a new file, replace avatar_path (delete old)
+///   - anything else  -> leave the stored avatar untouched
+pub fn update(
+    conn: &Connection,
+    avatars_dir: &Path,
+    id: &str,
+    input: NewCharacterInput,
+) -> Result<Character, String> {
+    let name = input.name.trim().to_string();
+    if name.is_empty() {
+        return Err("Character name is required".into());
+    }
+    if name_exists(conn, &name, id)? {
+        return Err(format!("A character named '{name}' already exists"));
+    }
+
+    // Only replace the avatar when a freshly picked image (data URL) is sent.
+    let new_avatar = match input.avatar.as_deref() {
+        Some(a) if a.starts_with("data:") => Some(save_avatar(avatars_dir, id, a)?),
+        _ => None,
+    };
+
+    if let Some(path) = &new_avatar {
+        // Remove the previous file (best-effort) if it differs.
+        if let Ok(Some(prev)) = get(conn, id) {
+            if let Some(rel) = prev.avatar {
+                if rel.as_str() != path.as_str() {
+                    let file = rel.strip_prefix("avatars/").unwrap_or(&rel);
+                    let _ = std::fs::remove_file(avatars_dir.join(file));
+                }
+            }
+        }
+        conn.execute(
+            "UPDATE characters SET name=?2, info=?3, appearance=?4, description=?5,
+                 initial_message=?6, avatar_path=?7, updated_at=?8 WHERE id=?1",
+            params![id, name, input.info, input.appearance, input.description,
+                    input.initial_message, path, now_ms()],
+        )
+        .map_err(map_unique(&name))?;
+    } else {
+        conn.execute(
+            "UPDATE characters SET name=?2, info=?3, appearance=?4, description=?5,
+                 initial_message=?6, updated_at=?7 WHERE id=?1",
+            params![id, name, input.info, input.appearance, input.description,
+                    input.initial_message, now_ms()],
+        )
+        .map_err(map_unique(&name))?;
+    }
+
+    get(conn, id)?.ok_or_else(|| format!("Character '{id}' not found"))
+}
+
+/// Map a UNIQUE-constraint failure to the friendly duplicate-name message.
+fn map_unique(name: &str) -> impl Fn(rusqlite::Error) -> String + '_ {
+    move |err| {
+        let msg = err.to_string();
+        if msg.contains("UNIQUE") {
+            format!("A character named '{name}' already exists")
+        } else {
+            msg
+        }
+    }
+}
+
 /// Decode a `data:` URL and write it under `avatars/`. Returns the relative path.
 fn save_avatar(dir: &Path, id: &str, data_url: &str) -> Result<String, String> {
     use base64::{engine::general_purpose::STANDARD, Engine};

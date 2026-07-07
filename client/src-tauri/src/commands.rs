@@ -48,14 +48,29 @@ pub fn create_character(
     Ok(c)
 }
 
-/// Live pre-check for the create form: is this name free (case-insensitively)?
+#[tauri::command]
+pub fn update_character(
+    id: String,
+    input: NewCharacterInput,
+    state: State<'_, AppState>,
+) -> Result<Character, String> {
+    let db = state.db.lock().unwrap();
+    let mut c = db::characters::update(&db.conn, &db.avatars_dir, &id, input)?;
+    resolve_avatar(&db.avatars_dir, &mut c);
+    Ok(c)
+}
+
+/// Live pre-check for the create/edit form: is this name free (case-insensitively)?
+/// Pass `exclude_id` when editing so the character's own current name is allowed.
 #[tauri::command]
 pub fn character_name_available(
     name: String,
+    exclude_id: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<bool, String> {
     let db = state.db.lock().unwrap();
-    Ok(!db::characters::name_exists(&db.conn, name.trim(), "")?)
+    let exclude = exclude_id.as_deref().unwrap_or("");
+    Ok(!db::characters::name_exists(&db.conn, name.trim(), exclude)?)
 }
 
 #[tauri::command]
