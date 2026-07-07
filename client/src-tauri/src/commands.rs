@@ -48,6 +48,16 @@ pub fn create_character(
     Ok(c)
 }
 
+/// Live pre-check for the create form: is this name free (case-insensitively)?
+#[tauri::command]
+pub fn character_name_available(
+    name: String,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let db = state.db.lock().unwrap();
+    Ok(!db::characters::name_exists(&db.conn, name.trim(), "")?)
+}
+
 #[tauri::command]
 pub fn set_favorite(
     character_id: String,

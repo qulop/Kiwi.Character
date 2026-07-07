@@ -66,6 +66,15 @@ pub fn insert(
     avatars_dir: &Path,
     input: NewCharacterInput,
 ) -> Result<Character, String> {
+    // Names must be unique case-insensitively (Step 6). Trim first.
+    let name = input.name.trim().to_string();
+    if name.is_empty() {
+        return Err("Character name is required".into());
+    }
+    if name_exists(conn, &name, "")? {
+        return Err(format!("A character named '{name}' already exists"));
+    }
+
     let id = new_id();
     let ts = now_ms();
 
@@ -82,7 +91,7 @@ pub fn insert(
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, ?8, ?8)",
         params![
             id,
-            input.name,
+            name,
             input.info,
             avatar_path,
             input.appearance,
@@ -91,11 +100,20 @@ pub fn insert(
             ts
         ],
     )
-    .map_err(|e| e.to_string())?;
+    // Map the UNIQUE-index violation (covers a check→insert race) to the same
+    // friendly message.
+    .map_err(|err| {
+        let msg = err.to_string();
+        if msg.contains("UNIQUE") {
+            format!("A character named '{name}' already exists")
+        } else {
+            msg
+        }
+    })?;
 
     Ok(Character {
         id,
-        name: input.name,
+        name,
         info: input.info,
         avatar: avatar_path,
         appearance: input.appearance,
