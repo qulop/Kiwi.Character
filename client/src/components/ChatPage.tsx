@@ -41,6 +41,7 @@ export default function ChatPage({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollDown = () =>
     requestAnimationFrame(() => {
@@ -132,8 +133,17 @@ export default function ChatPage({
   };
 
   const onKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') { e.preventDefault(); send(); }
+    // Enter sends; Shift+Enter inserts a newline.
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   };
+
+  // Grow the composer textarea with its content (capped by CSS max-height).
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }, [draft]);
 
   const copyMessage = (m: ChatMessage) => {
     navigator.clipboard.writeText(m.content).catch(() => {});
@@ -280,7 +290,9 @@ export default function ChatPage({
         </div>
 
         <div className="kc-composer">
-          <input
+          <textarea
+            ref={composerRef}
+            rows={1}
             placeholder={`Message ${character.name}…`}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

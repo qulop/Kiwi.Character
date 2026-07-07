@@ -160,6 +160,14 @@ after:
       _History three-dots now opens a working menu with "Delete chat" (trash
       icon). delete_conversation command removes the conversation (cascades
       messages); character kept. Menu flips up near the bottom. Compile-verified._
+- [x] [STEP DONE] <s>**Step 12 — Auto-growing message input** (implemented directly, no separate spec)</s>
+      _Composer is a textarea that grows with content (capped at 160px, then
+      scrolls). Enter sends, Shift+Enter inserts a newline. Compile-verified._
+- [ ] **Step 13 — Empty "continue" send** (implemented directly, no separate spec)
+      _Sending an empty message: if the last message is the AI's, add a hidden
+      technical user message so the model continues its previous message (not
+      shown in the UI); if the last message is the user's (after rewind/delete),
+      just generate a reply for it. Needs a hidden flag on messages._
 
 ---
 
