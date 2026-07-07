@@ -140,9 +140,10 @@ after:
       _Case-insensitive uniqueness enforced in insert (+ UNIQUE mapping) and
       surfaced inline in the modal, with a live blur pre-check. Compile-verified,
       no warnings._
-- [ ] **Step 7 — Message actions: copy / remove / rewind** → [7_message-actions-delete-copy-rewind.md](7_message-actions-delete-copy-rewind.md)
-      _Per-message three-dots menu. All messages: Copy, Remove. User messages
-      also: "Rewind to here" (delete everything below; no auto-regenerate)._
+- [x] [STEP DONE] <s>**Step 7 — Message actions: copy / edit / remove / rewind** → [7_message-actions-delete-copy-rewind.md](7_message-actions-delete-copy-rewind.md)</s>
+      _Top-right three-dots menu (flips up near the page bottom). All: Copy,
+      Remove. User also: Edit (inline) + Rewind to here. Backend delete/rewind/
+      update_message; thread reloads after send for real ids. Compile-verified._
 - [ ] **Step 8 — Character Info modal (view & edit)** → [8_character-info-modal.md](8_character-info-modal.md)
       _Clicking the avatar/name in either header opens a pre-filled, editable
       copy of the create form ("Save" button); backed by a new update_character

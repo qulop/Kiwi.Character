@@ -468,6 +468,90 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
 }
 .kc-bubble.user { background: var(--accSoft); border-color: var(--acc); }
 
+/* Per-message actions menu (copy / edit / remove / rewind). */
+.kc-msg-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kc-msg-actions { position: relative; flex: 0 0 auto; }
+.kc-msg-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 5px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.14s, background 0.14s, color 0.14s;
+}
+.kc-msg-row:hover .kc-msg-dots,
+.kc-msg-row:focus-within .kc-msg-dots { opacity: 1; }
+.kc-msg-dots:hover { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
+.kc-msg-menu {
+  position: absolute;
+  top: 22px;
+  right: 0;
+  left: auto;
+  z-index: 6;
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  background: var(--panel2);
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+/* Flip above the button when there isn't room below. */
+.kc-msg-menu--up { top: auto; bottom: 22px; }
+.kc-msg-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  font-family: 'Patrick Hand', cursive;
+  font-size: 14px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.kc-msg-menu button:hover { background: rgba(255, 255, 255, 0.08); }
+.kc-msg-menu button.danger { color: #ff6b6b; }
+.kc-msg-menu button.danger:hover { background: rgba(255, 80, 80, 0.12); }
+
+/* Inline message editing (user messages). */
+.kc-bubble-edit { display: flex; flex-direction: column; gap: 8px; min-width: 240px; }
+.kc-edit-area {
+  width: 100%;
+  min-height: 58px;
+  resize: vertical;
+  font: inherit;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  padding: 8px 10px;
+  outline: none;
+}
+.kc-edit-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.kc-edit-actions button {
+  font-family: 'Patrick Hand', cursive;
+  font-size: 14px;
+  padding: 5px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--line2);
+  cursor: pointer;
+}
+.kc-edit-save { background: var(--acc); border-color: var(--acc); color: #fff; }
+.kc-edit-save:hover { background: var(--accB); }
+.kc-edit-cancel { background: transparent; color: var(--dim); }
+.kc-edit-cancel:hover { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
+
 .kc-typing { display: flex; gap: 5px; align-items: center; padding: 15px 18px; background: var(--bub); border: 1px solid var(--line); border-radius: 16px; }
 .kc-typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); animation: kc-typing 1.1s infinite; }
 .kc-typing span:nth-child(2) { animation-delay: 0.18s; }

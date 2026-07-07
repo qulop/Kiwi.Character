@@ -84,6 +84,18 @@ export function sendMessage(
   return invoke('send_message', { conversationId, content });
 }
 
+export function deleteMessage(conversationId: string, messageId: string): Promise<void> {
+  return invoke('delete_message', { conversationId, messageId });
+}
+
+export function rewindToMessage(conversationId: string, messageId: string): Promise<void> {
+  return invoke('rewind_to_message', { conversationId, messageId });
+}
+
+export function updateMessage(messageId: string, content: string): Promise<void> {
+  return invoke('update_message', { messageId, content });
+}
+
 // ---- Settings / model ----------------------------------------------------
 
 export function getSettings(): Promise<ModelSettings> {

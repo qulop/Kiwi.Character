@@ -69,3 +69,30 @@ export const CrossIcon = () => (
     <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
   </svg>
 );
+
+export const CopyIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <rect x="9" y="9" width="11" height="11" rx="2" />
+    <path d="M5 15V5a2 2 0 0 1 2-2h10" strokeLinecap="round" />
+  </svg>
+);
+
+export const TrashIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const RewindIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <polyline points="11,7 6,12 11,17" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M6 12h8a4 4 0 0 1 0 8h-2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const PenIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M4 20h4L18 10a2 2 0 0 0-4-4L4 16v4z" strokeLinejoin="round" />
+    <path d="M13.5 6.5l4 4" strokeLinecap="round" />
+  </svg>
+);
