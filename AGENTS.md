@@ -77,8 +77,10 @@ coherent commits** — not one giant commit. Guidelines:
   ```
 - Commit on the current working branch unless the user asks for a feature branch.
   Do not push unless the user asks.
-- `agent-docs/` is git-ignored, so doc updates (including the `[STEP DONE]` marks)
-  are **not** committed — they are local working notes.
+- `agent-docs/` is git-ignored (the detailed per-step specs are local working
+  notes). **`AGENTS.md` itself lives at the repo root and IS tracked**, so its
+  step-index updates (the `[STEP DONE]` marks) are committed — include this file
+  in the step's final commit.
 
 **Example commit sequence for Step 1:**
 ```
@@ -112,9 +114,11 @@ after:
 
 > Execute top to bottom. Each links to its detailed spec.
 
-- [ ] **Step 0 — Chat reliability & streaming** → [0_chat-reliability-and-streaming.md](0_chat-reliability-and-streaming.md)
-      _Make `send_message` work end-to-end, surface backend errors in the UI, add
-      token streaming, and diagnose the LM Studio "Channel Error"._
+- [~] **Step 0 — Chat reliability & streaming** → [0_chat-reliability-and-streaming.md](0_chat-reliability-and-streaming.md) — ⚠️ **PARTIAL / DEFERRED**
+      _Streaming infra + error surfacing implemented (committed with the baseline).
+      The LM Studio "Channel Error" is **still unresolved**; per the user's
+      decision this is revisited **after Step 6**. Do not mark `[STEP DONE]` until
+      chat works end-to-end._
 - [ ] **Step 1 — Database interlayer** → [1_database-interlayer.md](1_database-interlayer.md)
       _Introduce SQLite (`rusqlite`), the schema/migrations, and repository
       functions; back all existing commands with the DB instead of in-memory state._
