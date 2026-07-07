@@ -101,6 +101,19 @@ export default function App() {
     }
   };
 
+  const deleteChat = async (h: HistoryItem) => {
+    setHistory((list) => list.filter((x) => x.id !== h.id));
+    if (conversationId === h.id) {
+      setActiveCharacter(null);
+      setPage('main');
+    }
+    try {
+      await api.deleteConversation(h.id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const sidebar = (
     <Sidebar
       history={history}
@@ -111,6 +124,7 @@ export default function App() {
       onCreate={() => setModal('new')}
       onSettings={() => setModal('settings')}
       onSelect={openHistory}
+      onDeleteChat={deleteChat}
     />
   );
 

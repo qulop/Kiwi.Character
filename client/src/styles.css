@@ -252,8 +252,39 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   cursor: pointer;
   visibility: hidden;
 }
-.kc-hist-item:hover .kc-hist-more { visibility: visible; }
+.kc-hist-item:hover .kc-hist-more,
+.kc-hist-item:focus-within .kc-hist-more { visibility: visible; }
 .kc-hist-more:hover { background: var(--line2); color: var(--ink); }
+/* "Delete chat" popover for a history item. */
+.kc-hist-menu {
+  position: absolute;
+  top: 42px;
+  right: 6px;
+  z-index: 7;
+  min-width: 150px;
+  padding: 6px;
+  background: var(--panel2);
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+.kc-hist-menu--up { top: auto; bottom: 42px; }
+.kc-hist-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  font-family: 'Patrick Hand', cursive;
+  font-size: 14px;
+  color: #ff6b6b;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.kc-hist-menu button:hover { background: rgba(255, 80, 80, 0.12); }
 
 .kc-settings-btn {
   display: flex;

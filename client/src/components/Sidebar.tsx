@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import type { HistoryItem } from '../types';
 import Avatar from './Avatar';
-import { SearchIcon } from './icons';
+import { SearchIcon, TrashIcon } from './icons';
 
 interface SidebarProps {
   history: HistoryItem[];
@@ -11,6 +12,7 @@ interface SidebarProps {
   onCreate: () => void;
   onSettings: () => void;
   onSelect: (item: HistoryItem) => void;
+  onDeleteChat: (item: HistoryItem) => void;
 }
 
 const BUCKET_LABELS = [
@@ -51,7 +53,23 @@ export default function Sidebar({
   onCreate,
   onSettings,
   onSelect,
+  onDeleteChat,
 }: SidebarProps) {
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [menuUp, setMenuUp] = useState(false);
+
+  // Close an open history menu on any outside click / Escape.
+  useEffect(() => {
+    if (!menuFor) return;
+    const close = () => setMenuFor(null);
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [menuFor]);
+
   const filtered = search.trim()
     ? history.filter((h) => h.name.toLowerCase().includes(search.trim().toLowerCase()))
     : history;
@@ -62,17 +80,40 @@ export default function Sidebar({
   for (const h of filtered) groups[bucketOf(h.lastMessageAt ?? 0, now)].push(h);
 
   const renderItem = (h: HistoryItem) => (
-    <button
+    <div
       key={h.id}
       className={'kc-hist-item' + (h.id === activeId ? ' active' : '')}
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(h)}
+      onKeyDown={(e) => { if (e.key === 'Enter') onSelect(h); }}
     >
       <Avatar character={{ name: h.name, avatar: h.avatar }} className="kc-hist-avatar" />
       <span className="kc-hist-name">{h.name}</span>
-      <span className="kc-hist-more" role="button" onClick={(e) => e.stopPropagation()}>
+      <button
+        className="kc-hist-more"
+        aria-label="Chat actions"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (menuFor === h.id) { setMenuFor(null); return; }
+          const rect = e.currentTarget.getBoundingClientRect();
+          setMenuUp(window.innerHeight - rect.bottom < 70);
+          setMenuFor(h.id);
+        }}
+      >
         ⋯
-      </span>
-    </button>
+      </button>
+      {menuFor === h.id && (
+        <div
+          className={'kc-hist-menu' + (menuUp ? ' kc-hist-menu--up' : '')}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button className="danger" onClick={() => { onDeleteChat(h); setMenuFor(null); }}>
+            <TrashIcon /> <span>Delete chat</span>
+          </button>
+        </div>
+      )}
+    </div>
   );
 
   return (

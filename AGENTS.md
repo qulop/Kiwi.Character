@@ -156,6 +156,10 @@ after:
       (Today / Yesterday / This week / This month / This year / A while ago).
       list_history returns avatar + lastMessageAt; buckets computed client-side.
       Compile-verified._
+- [x] [STEP DONE] <s>**Step 11 — "Delete chat" in history menu** (implemented directly, no separate spec)</s>
+      _History three-dots now opens a working menu with "Delete chat" (trash
+      icon). delete_conversation command removes the conversation (cascades
+      messages); character kept. Menu flips up near the bottom. Compile-verified._
 
 ---
 

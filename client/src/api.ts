@@ -81,6 +81,10 @@ export function listMessages(conversationId: string): Promise<ChatMessage[]> {
   return invoke('list_messages', { conversationId });
 }
 
+export function deleteConversation(conversationId: string): Promise<void> {
+  return invoke('delete_conversation', { conversationId });
+}
+
 /**
  * Send a user message and get the assistant's reply.
  *
