@@ -119,9 +119,10 @@ after:
       The LM Studio "Channel Error" is **still unresolved**; per the user's
       decision this is revisited **after Step 6**. Do not mark `[STEP DONE]` until
       chat works end-to-end._
-- [ ] **Step 1 — Database interlayer** → [1_database-interlayer.md](1_database-interlayer.md)
-      _Introduce SQLite (`rusqlite`), the schema/migrations, and repository
-      functions; back all existing commands with the DB instead of in-memory state._
+- [x] [STEP DONE] <s>**Step 1 — Database interlayer** → [1_database-interlayer.md](1_database-interlayer.md)</s>
+      _SQLite (`rusqlite` bundled) with schema/migrations, per-entity
+      repositories, and all commands backed by the DB. Seed data kept.
+      Not runtime-verified (SAC blocks the build)._
 - [ ] **Step 2 — Jump to chat after character creation** → [2_navigate-to-chat-after-create.md](2_navigate-to-chat-after-create.md)
       _After creating a character, open the chat page with that new character._
 - [ ] **Step 3 — Character avatar on the chat page** → [3_character-avatar-on-chat-page.md](3_character-avatar-on-chat-page.md)
