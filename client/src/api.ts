@@ -124,6 +124,16 @@ export function testEndpoint(endpoint: string): Promise<EndpointTestResult> {
   return invoke('test_endpoint', { endpoint });
 }
 
+/** Models currently loaded on the server (LM Studio). */
+export function loadedModels(endpoint: string): Promise<string[]> {
+  return invoke('loaded_models', { endpoint });
+}
+
+/** Unload a model on the server (via the lms CLI). */
+export function unloadModel(model: string): Promise<void> {
+  return invoke('unload_model', { model });
+}
+
 export function loadModel(settings: ModelSettings): Promise<void> {
   return invoke('load_model', { settings });
 }

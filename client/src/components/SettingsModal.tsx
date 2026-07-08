@@ -8,11 +8,19 @@ interface SettingsModalProps {
   initialVerified?: boolean;
   /** Models from the app's last successful ping. */
   initialModels?: string[];
+  /** Models currently loaded on the server, from the app's last ping. */
+  initialLoaded?: string[];
   onClose: () => void;
   /** Ping the endpoint; resolve with the available model list. */
   onTest: (endpoint: string) => Promise<EndpointTestResult>;
   /** Persist + load the chosen model on the server. Rejects on failure. */
   onLoad: (settings: ModelSettings) => Promise<void>;
+  /** Fetch the models currently loaded on the given endpoint. */
+  onRefreshLoaded: (endpoint: string) => Promise<string[]>;
+  /** Unload a model on the server. */
+  onUnload: (model: string) => Promise<void>;
+  /** Persist settings without loading (e.g. when picking an already-loaded model). */
+  onSave: (settings: ModelSettings) => Promise<void>;
 }
 
 /**
@@ -23,9 +31,13 @@ export default function SettingsModal({
   initial = DEFAULT_SETTINGS,
   initialVerified = false,
   initialModels = [],
+  initialLoaded = [],
   onClose,
   onTest,
   onLoad,
+  onRefreshLoaded,
+  onUnload,
+  onSave,
 }: SettingsModalProps) {
   const [s, setS] = useState<ModelSettings>(initial);
   // Start unlocked if the app's background ping already sees the endpoint online.
@@ -40,6 +52,8 @@ export default function SettingsModal({
   const [testError, setTestError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadResult, setLoadResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [loaded, setLoaded] = useState<string[]>(initialLoaded);
+  const [unloading, setUnloading] = useState(false);
 
   const set = <K extends keyof ModelSettings>(k: K, v: ModelSettings[K]) =>
     setS((prev) => ({ ...prev, [k]: v }));
@@ -55,6 +69,7 @@ export default function SettingsModal({
           setModels(res.models);
           if (!res.models.includes(s.model)) set('model', res.models[0]);
         }
+        void refreshLoaded(s.endpoint);
       } else {
         setTestError(res.error || 'Could not connect to the endpoint.');
       }
@@ -66,16 +81,43 @@ export default function SettingsModal({
     }
   };
 
+  const refreshLoaded = async (endpoint: string) => {
+    try {
+      setLoaded(await onRefreshLoaded(endpoint));
+    } catch {
+      setLoaded([]);
+    }
+  };
+
   const load = async () => {
     setLoading(true);
     setLoadResult(null);
     try {
       await onLoad(s);
       setLoadResult({ ok: true, text: `Loaded “${s.model}”.` });
+      await refreshLoaded(s.endpoint);
     } catch (e) {
       setLoadResult({ ok: false, text: String(e) });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Which loaded model is used with characters (falls back to the first).
+  const loadedPick = loaded.includes(s.model) ? s.model : loaded[0] ?? '';
+
+  const unloadSelected = async () => {
+    if (!loadedPick) return;
+    setUnloading(true);
+    setLoadResult(null);
+    try {
+      await onUnload(loadedPick);
+      await refreshLoaded(s.endpoint);
+      setLoadResult({ ok: true, text: `Unloaded “${loadedPick}”.` });
+    } catch (e) {
+      setLoadResult({ ok: false, text: String(e) });
+    } finally {
+      setUnloading(false);
     }
   };
 
@@ -109,6 +151,41 @@ export default function SettingsModal({
             <div className="kc-form-error">⚠️ {testError}</div>
           ) : (
             <div className="kc-status-wait">Press “Test” to ping the endpoint and unlock model settings.</div>
+          )}
+        </div>
+
+        <div className="kc-divider" />
+
+        <div className="kc-loaded-section">
+          <div className="kc-section-label" style={{ padding: 0 }}>Loaded model</div>
+          {loaded.length === 0 ? (
+            <div className="kc-status-wait">No model is loaded on the server.</div>
+          ) : (
+            <div className="kc-loaded-row">
+              {loaded.length > 1 ? (
+                <select
+                  className="kc-select"
+                  value={loadedPick}
+                  onChange={(e) => {
+                    // Picking an already-loaded model takes effect right away.
+                    const ns = { ...s, model: e.target.value };
+                    setS(ns);
+                    onSave(ns).catch(console.error);
+                  }}
+                >
+                  {loaded.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              ) : (
+                <span className="kc-loaded-name">{loaded[0]}</span>
+              )}
+              <button
+                className="kc-unload-btn"
+                onClick={unloadSelected}
+                disabled={unloading || !loadedPick}
+              >
+                {unloading ? 'Unloading…' : 'Unload'}
+              </button>
+            </div>
           )}
         </div>
 

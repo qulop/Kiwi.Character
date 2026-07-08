@@ -33,10 +33,11 @@ export default function App() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [settings, setSettings] = useState<ModelSettings>(DEFAULT_SETTINGS);
-  const [endpointStatus, setEndpointStatus] = useState<{ online: boolean; models: string[] }>({
-    online: false,
-    models: [],
-  });
+  const [endpointStatus, setEndpointStatus] = useState<{
+    online: boolean;
+    models: string[];
+    loaded: string[];
+  }>({ online: false, models: [], loaded: [] });
 
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [conversationId, setConversationId] = useState<string>('');
@@ -57,7 +58,12 @@ export default function App() {
     const ping = async () => {
       try {
         const res = await api.testEndpoint(settings.endpoint);
-        if (alive) setEndpointStatus({ online: res.ok, models: res.models ?? [] });
+        let loaded: string[] = [];
+        if (res.ok) {
+          // Best-effort: the loaded-model API is LM Studio specific.
+          try { loaded = await api.loadedModels(settings.endpoint); } catch { /* ignore */ }
+        }
+        if (alive) setEndpointStatus({ online: res.ok, models: res.models ?? [], loaded });
       } catch {
         if (alive) setEndpointStatus((prev) => ({ ...prev, online: false }));
       }
@@ -201,9 +207,13 @@ export default function App() {
               initial={settings}
               initialVerified={endpointStatus.online}
               initialModels={endpointStatus.models}
+              initialLoaded={endpointStatus.loaded}
               onClose={() => setModal(null)}
               onTest={api.testEndpoint}
               onLoad={async (s) => { setSettings(s); await api.loadModel(s); }}
+              onRefreshLoaded={api.loadedModels}
+              onUnload={api.unloadModel}
+              onSave={async (s) => { setSettings(s); await api.saveSettings(s); }}
             />
           )}
           {modal === 'new' && (
