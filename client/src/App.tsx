@@ -36,6 +36,7 @@ export default function App() {
 
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [conversationId, setConversationId] = useState<string>('');
+  const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
 
   // Initial load from the Rust backend.
   useEffect(() => {
@@ -46,9 +47,23 @@ export default function App() {
 
   const openCharacter = (c: Character) => {
     setActiveCharacter(c);
-    // A real app maps a character to (or creates) a conversation id here.
-    setConversationId('conv-' + c.id);
+    const convId = 'conv-' + c.id;
+    setConversationId(convId);
     setPage('chat');
+    // Surface the conversation in history right away (no reload needed).
+    setHistory((h) =>
+      h.some((x) => x.id === convId)
+        ? h
+        : [
+            { id: convId, characterId: c.id, name: c.name, avatar: c.avatar ?? null, lastMessageAt: Date.now() },
+            ...h,
+          ],
+    );
+  };
+
+  const openCharacterInfo = (c: Character) => {
+    setEditingCharacter(c);
+    setModal('info');
   };
 
   const openHistory = (h: HistoryItem) => {
@@ -68,12 +83,19 @@ export default function App() {
   };
 
   const updateCharacter = async (input: NewCharacterInput) => {
-    if (!activeCharacter) return;
+    if (!editingCharacter) return;
     // Throws on collision so the modal stays open and shows the error.
-    const updated = await api.updateCharacter(activeCharacter.id, input);
+    const updated = await api.updateCharacter(editingCharacter.id, input);
     setCharacters((cs) => cs.map((x) => (x.id === updated.id ? updated : x)));
-    setActiveCharacter(updated);
+    if (activeCharacter?.id === updated.id) setActiveCharacter(updated);
+    // Keep the history row's name/avatar in sync with the edit.
+    setHistory((h) =>
+      h.map((x) =>
+        x.characterId === updated.id ? { ...x, name: updated.name, avatar: updated.avatar ?? null } : x,
+      ),
+    );
     setModal(null);
+    setEditingCharacter(null);
   };
 
   const toggleFavorite = async (c: Character) => {
@@ -135,6 +157,7 @@ export default function App() {
           sidebar={sidebar}
           characters={characters}
           onOpenCharacter={openCharacter}
+          onEditCharacter={openCharacterInfo}
           onToggleFavorite={toggleFavorite}
           onDeleteCharacter={deleteCharacter}
         />
@@ -143,7 +166,7 @@ export default function App() {
           sidebar={sidebar}
           character={activeCharacter}
           conversationId={conversationId}
-          onOpenInfo={() => setModal('info')}
+          onOpenInfo={() => openCharacterInfo(activeCharacter)}
           onToggleFavorite={() => toggleFavorite(activeCharacter)}
         />
       )}
@@ -168,14 +191,14 @@ export default function App() {
               onSubmit={createCharacter}
             />
           )}
-          {modal === 'info' && activeCharacter && (
+          {modal === 'info' && editingCharacter && (
             <CharacterFormModal
               title="Character Info"
               icon={<InfoIcon />}
               submitLabel="Save"
-              initial={characterToInput(activeCharacter)}
-              excludeId={activeCharacter.id}
-              onClose={() => setModal(null)}
+              initial={characterToInput(editingCharacter)}
+              excludeId={editingCharacter.id}
+              onClose={() => { setModal(null); setEditingCharacter(null); }}
               onSubmit={updateCharacter}
             />
           )}

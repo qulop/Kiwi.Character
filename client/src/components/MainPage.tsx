@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import type { Character } from '../types';
 import { initialOf } from '../types';
-import { DotsIcon, HeartIcon, HeartFilledIcon, CrossIcon } from './icons';
+import { DotsIcon, HeartIcon, HeartFilledIcon, CrossIcon, PenIcon } from './icons';
 
 interface MainPageProps {
   sidebar: React.ReactNode;
   characters: Character[];
   onOpenCharacter: (c: Character) => void;
+  onEditCharacter: (c: Character) => void;
   onToggleFavorite: (c: Character) => void;
   onDeleteCharacter: (c: Character) => void;
 }
@@ -27,6 +28,7 @@ export default function MainPage({
   sidebar,
   characters,
   onOpenCharacter,
+  onEditCharacter,
   onToggleFavorite,
   onDeleteCharacter,
 }: MainPageProps) {
@@ -120,6 +122,10 @@ export default function MainPage({
                     <button onClick={() => { onToggleFavorite(c); setMenuFor(null); }}>
                       {c.isFavorite ? <HeartFilledIcon /> : <HeartIcon />}
                       <span>{c.isFavorite ? 'Remove favourite' : 'Mark as favourite'}</span>
+                    </button>
+                    <button onClick={() => { onEditCharacter(c); setMenuFor(null); }}>
+                      <PenIcon />
+                      <span>Edit</span>
                     </button>
                     <button className="danger" onClick={() => { onDeleteCharacter(c); setMenuFor(null); }}>
                       <CrossIcon />
