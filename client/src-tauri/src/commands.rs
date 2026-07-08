@@ -163,6 +163,9 @@ pub async fn send_message(
 
     // 3. Call the local LLM.
     let reply_text = openai::chat_completion(&settings, req_msgs).await?;
+    if reply_text.trim().is_empty() {
+        return Err("The model returned an empty response.".into());
+    }
 
     // 4. Persist and return the assistant reply.
     let reply = {
@@ -207,7 +210,12 @@ pub async fn stream_message(
 
     match result {
         Ok(full) => {
-            // 4a. Persist the assistant reply, then signal completion.
+            // 4a. Persist the assistant reply, then signal completion. Skip
+            // storing an empty reply so it can't pollute future prompts.
+            if full.trim().is_empty() {
+                let _ = app.emit("chat://error", "The model returned an empty response.".to_string());
+                return Ok(());
+            }
             {
                 let db = state.db.lock().unwrap();
                 db::messages::insert(&db.conn, &conversation_id, "assistant", &full, false)?;
@@ -265,6 +273,10 @@ pub async fn stream_continue(
 
     match result {
         Ok(full) => {
+            if full.trim().is_empty() {
+                let _ = app.emit("chat://error", "The model returned an empty response.".to_string());
+                return Ok(());
+            }
             {
                 let db = state.db.lock().unwrap();
                 db::messages::insert(&db.conn, &conversation_id, "assistant", &full, false)?;
@@ -433,6 +445,11 @@ fn build_request(
             } else {
                 continue;
             }
+        }
+        // Drop empty assistant turns (e.g. earlier blank replies from a reasoning
+        // model) — feeding them back makes the model produce yet more empties.
+        if m.role == "assistant" && m.content.trim().is_empty() {
+            continue;
         }
         req_msgs.push(ChatReqMsg {
             role: m.role.clone(),
