@@ -16,7 +16,13 @@ use crate::models::ModelSettings;
 pub async fn list_models(endpoint: &str) -> Result<Vec<String>, String> {
     let url = format!("{}/models", endpoint.trim_end_matches('/'));
 
-    let resp = reqwest::Client::new()
+    // Short timeout so a bad/offline endpoint fails fast (used by Test + the
+    // background health ping).
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let resp = client
         .get(&url)
         .send()
         .await
