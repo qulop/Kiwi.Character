@@ -44,6 +44,8 @@ pub fn run() {
             commands::get_settings,
             commands::save_settings,
             commands::test_endpoint,
+            commands::loaded_models,
+            commands::unload_model,
             commands::load_model,
         ])
         .run(tauri::generate_context!())

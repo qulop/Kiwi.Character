@@ -49,6 +49,55 @@ pub async fn list_models(endpoint: &str) -> Result<Vec<String>, String> {
     Ok(parsed.data.into_iter().map(|m| m.id).collect())
 }
 
+/// The models currently **loaded** on the server, via LM Studio's native
+/// `/api/v0/models` (which reports each model's `state`). Filters to LLM/VLM
+/// models that are `loaded` (excludes embeddings and unloaded ones). Returns an
+/// error for servers that don't expose `/api/v0` (e.g. plain Ollama).
+pub async fn loaded_models(endpoint: &str) -> Result<Vec<String>, String> {
+    // The native API lives at the host root, not under /v1.
+    let base = endpoint.trim_end_matches('/');
+    let base = base.strip_suffix("/v1").unwrap_or(base).trim_end_matches('/');
+    let url = format!("{base}/api/v0/models");
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach {url}: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("Endpoint returned HTTP {}", resp.status()));
+    }
+
+    #[derive(Deserialize)]
+    struct V0Resp {
+        data: Vec<V0Model>,
+    }
+    #[derive(Deserialize)]
+    struct V0Model {
+        id: String,
+        #[serde(default)]
+        state: String,
+        #[serde(default, rename = "type")]
+        kind: String,
+    }
+
+    let parsed: V0Resp = resp
+        .json()
+        .await
+        .map_err(|e| format!("Unexpected /api/v0/models response: {e}"))?;
+
+    Ok(parsed
+        .data
+        .into_iter()
+        .filter(|m| m.state == "loaded" && (m.kind == "llm" || m.kind == "vlm"))
+        .map(|m| m.id)
+        .collect())
+}
+
 /// Ask the server to load `settings.model`. There is no standard OpenAI "load"
 /// endpoint, but LM Studio (with Just-In-Time loading, on by default) loads the
 /// requested model when it receives a chat request for it. We send a minimal

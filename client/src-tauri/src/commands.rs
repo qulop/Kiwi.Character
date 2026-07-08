@@ -350,6 +350,38 @@ pub async fn test_endpoint(endpoint: String) -> EndpointTestResult {
     }
 }
 
+/// Models currently loaded on the server (LM Studio native API).
+#[tauri::command]
+pub async fn loaded_models(endpoint: String) -> Result<Vec<String>, String> {
+    openai::loaded_models(&endpoint).await
+}
+
+/// Unload a model on the server via the `lms` CLI (LM Studio has no REST unload).
+#[tauri::command]
+pub async fn unload_model(model: String) -> Result<(), String> {
+    if model.trim().is_empty() {
+        return Err("No model to unload".into());
+    }
+    let joined = tauri::async_runtime::spawn_blocking(move || {
+        std::process::Command::new("lms")
+            .args(["unload", &model])
+            .output()
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let out = joined.map_err(|e| {
+        format!("Could not run 'lms' (is LM Studio's CLI installed / on PATH?): {e}")
+    })?;
+    if !out.status.success() {
+        return Err(format!(
+            "lms unload failed: {}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        ));
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn load_model(settings: ModelSettings, state: State<'_, AppState>) -> Result<(), String> {
     // Persist the choice first (so it sticks even if loading is slow or fails),
