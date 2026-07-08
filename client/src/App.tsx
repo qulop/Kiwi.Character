@@ -172,7 +172,8 @@ export default function App() {
       )}
 
       {modal && (
-        <div className="kc-overlay" onClick={() => setModal(null)}>
+        // Backdrop no longer closes the modal — use the close (×) button.
+        <div className="kc-overlay">
           {modal === 'settings' && (
             <SettingsModal
               initial={settings}
