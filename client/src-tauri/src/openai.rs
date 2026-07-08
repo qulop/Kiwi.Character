@@ -43,6 +43,40 @@ pub async fn list_models(endpoint: &str) -> Result<Vec<String>, String> {
     Ok(parsed.data.into_iter().map(|m| m.id).collect())
 }
 
+/// Ask the server to load `settings.model`. There is no standard OpenAI "load"
+/// endpoint, but LM Studio (with Just-In-Time loading, on by default) loads the
+/// requested model when it receives a chat request for it. We send a minimal
+/// 1-token request; when it returns successfully the model is loaded/resident.
+pub async fn load_model(settings: &ModelSettings) -> Result<(), String> {
+    let url = format!("{}/chat/completions", settings.endpoint.trim_end_matches('/'));
+    let body = serde_json::json!({
+        "model": settings.model,
+        "messages": [{ "role": "user", "content": "Hi" }],
+        "max_tokens": 1,
+        "stream": false,
+    });
+
+    // Loading a large model can take a while — allow a generous timeout.
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(900))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client
+        .post(&url)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach {url}: {e}"))?;
+
+    let status = resp.status();
+    if !status.is_success() {
+        let detail = resp.text().await.unwrap_or_default();
+        return Err(format!("Model load failed (HTTP {status}): {detail}"));
+    }
+    Ok(())
+}
+
 #[derive(Serialize)]
 pub struct ChatReqMsg {
     pub role: String,

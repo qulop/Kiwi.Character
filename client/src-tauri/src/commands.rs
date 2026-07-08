@@ -351,12 +351,14 @@ pub async fn test_endpoint(endpoint: String) -> EndpointTestResult {
 }
 
 #[tauri::command]
-pub fn load_model(settings: ModelSettings, state: State<'_, AppState>) -> Result<(), String> {
-    // LM Studio / Ollama load models on first use, so there's no standard "load"
-    // call. We just persist the chosen settings; the selected model is used on
-    // the next send/stream.
-    let db = state.db.lock().unwrap();
-    db::settings::save(&db.conn, &settings)
+pub async fn load_model(settings: ModelSettings, state: State<'_, AppState>) -> Result<(), String> {
+    // Persist the choice first (so it sticks even if loading is slow or fails),
+    // then ask the server to actually load the model. Drop the lock before await.
+    {
+        let db = state.db.lock().unwrap();
+        db::settings::save(&db.conn, &settings)?;
+    }
+    openai::load_model(&settings).await
 }
 
 // ---- Helpers (not commands) ----------------------------------------------
