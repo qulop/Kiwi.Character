@@ -33,6 +33,10 @@ export default function App() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [settings, setSettings] = useState<ModelSettings>(DEFAULT_SETTINGS);
+  const [endpointStatus, setEndpointStatus] = useState<{ online: boolean; models: string[] }>({
+    online: false,
+    models: [],
+  });
 
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [conversationId, setConversationId] = useState<string>('');
@@ -44,6 +48,24 @@ export default function App() {
     api.listHistory().then(setHistory).catch(console.error);
     api.getSettings().then(setSettings).catch(() => { /* keep defaults */ });
   }, []);
+
+  // Remember the last endpoint and keep its online status fresh by pinging it
+  // now and every 45s (and whenever the saved endpoint changes). This lets the
+  // Settings modal open already-unlocked when the endpoint is reachable.
+  useEffect(() => {
+    let alive = true;
+    const ping = async () => {
+      try {
+        const res = await api.testEndpoint(settings.endpoint);
+        if (alive) setEndpointStatus({ online: res.ok, models: res.models ?? [] });
+      } catch {
+        if (alive) setEndpointStatus((prev) => ({ ...prev, online: false }));
+      }
+    };
+    ping();
+    const id = window.setInterval(ping, 45000);
+    return () => { alive = false; clearInterval(id); };
+  }, [settings.endpoint]);
 
   const openCharacter = (c: Character) => {
     setActiveCharacter(c);
@@ -177,6 +199,8 @@ export default function App() {
           {modal === 'settings' && (
             <SettingsModal
               initial={settings}
+              initialVerified={endpointStatus.online}
+              initialModels={endpointStatus.models}
               onClose={() => setModal(null)}
               onTest={api.testEndpoint}
               onLoad={async (s) => { setSettings(s); await api.loadModel(s); }}

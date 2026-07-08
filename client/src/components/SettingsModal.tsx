@@ -4,6 +4,10 @@ import { DEFAULT_SETTINGS } from '../types';
 
 interface SettingsModalProps {
   initial?: ModelSettings;
+  /** Whether the app's background ping currently sees the endpoint as online. */
+  initialVerified?: boolean;
+  /** Models from the app's last successful ping. */
+  initialModels?: string[];
   onClose: () => void;
   /** Ping the endpoint; resolve with the available model list. */
   onTest: (endpoint: string) => Promise<EndpointTestResult>;
@@ -17,20 +21,23 @@ interface SettingsModalProps {
  */
 export default function SettingsModal({
   initial = DEFAULT_SETTINGS,
+  initialVerified = false,
+  initialModels = [],
   onClose,
   onTest,
   onLoad,
 }: SettingsModalProps) {
   const [s, setS] = useState<ModelSettings>(initial);
-  const [verified, setVerified] = useState(false);
-  const [models, setModels] = useState<string[]>([
-    'llama-3.1-8b-instruct',
-    'mistral-7b-instruct-v0.3',
-    'qwen2.5-14b-instruct',
-    'phi-3-mini-4k',
-  ]);
+  // Start unlocked if the app's background ping already sees the endpoint online.
+  const [verified, setVerified] = useState(initialVerified);
+  const [models, setModels] = useState<string[]>(
+    initialModels.length
+      ? initialModels
+      : ['llama-3.1-8b-instruct', 'mistral-7b-instruct-v0.3', 'qwen2.5-14b-instruct', 'phi-3-mini-4k'],
+  );
   const [advanced, setAdvanced] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [testError, setTestError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadResult, setLoadResult] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -39,13 +46,21 @@ export default function SettingsModal({
 
   const runTest = async () => {
     setTesting(true);
+    setTestError(null);
     try {
       const res = await onTest(s.endpoint);
       setVerified(res.ok);
-      if (res.models?.length) {
-        setModels(res.models);
-        if (!res.models.includes(s.model)) set('model', res.models[0]);
+      if (res.ok) {
+        if (res.models?.length) {
+          setModels(res.models);
+          if (!res.models.includes(s.model)) set('model', res.models[0]);
+        }
+      } else {
+        setTestError(res.error || 'Could not connect to the endpoint.');
       }
+    } catch (e) {
+      setVerified(false);
+      setTestError(String(e));
     } finally {
       setTesting(false);
     }
@@ -82,7 +97,7 @@ export default function SettingsModal({
             <input
               className="kc-input kc-endpoint-input"
               value={s.endpoint}
-              onChange={(e) => { set('endpoint', e.target.value); setVerified(false); }}
+              onChange={(e) => { set('endpoint', e.target.value); setVerified(false); setTestError(null); }}
             />
             <button className="kc-test-btn" onClick={runTest} disabled={testing}>
               {testing ? 'Testing…' : 'Test'}
@@ -90,6 +105,8 @@ export default function SettingsModal({
           </div>
           {verified ? (
             <div className="kc-status-ok">✓ Endpoint verified — model settings unlocked.</div>
+          ) : testError ? (
+            <div className="kc-form-error">⚠️ {testError}</div>
           ) : (
             <div className="kc-status-wait">Press “Test” to ping the endpoint and unlock model settings.</div>
           )}
