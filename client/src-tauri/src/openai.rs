@@ -203,7 +203,11 @@ pub async fn chat_completion(
     }
     #[derive(Deserialize)]
     struct RespMsg {
+        #[serde(default)]
         content: String,
+        // Reasoning models (e.g. Qwen3) put the "thinking" here.
+        #[serde(default)]
+        reasoning_content: String,
     }
 
     let parsed: ChatResp = resp
@@ -211,12 +215,20 @@ pub async fn chat_completion(
         .await
         .map_err(|e| format!("Unexpected chat response: {e}"))?;
 
-    parsed
+    let msg = parsed
         .choices
         .into_iter()
         .next()
-        .map(|c| c.message.content)
-        .ok_or_else(|| "LLM returned no choices".to_string())
+        .map(|c| c.message)
+        .ok_or_else(|| "LLM returned no choices".to_string())?;
+
+    // The answer is in `content`; if the model only produced reasoning, fall
+    // back to it so the reply isn't blank.
+    Ok(if msg.content.trim().is_empty() {
+        msg.reasoning_content
+    } else {
+        msg.content
+    })
 }
 
 /// `POST {endpoint}/chat/completions` with `stream: true`.
@@ -251,12 +263,14 @@ pub async fn chat_completion_stream<F: FnMut(&str)>(
     }
 
     // SSE frames may split across network chunks — accumulate in a buffer and
-    // only process complete lines.
+    // only process complete lines. Track the answer (`content`) and the
+    // reasoning-model "thinking" (`reasoning_content`) separately.
     let mut buf = String::new();
-    let mut full = String::new();
+    let mut content_full = String::new();
+    let mut reasoning_full = String::new();
     let mut stream = resp.bytes_stream();
 
-    while let Some(chunk) = stream.next().await {
+    'outer: while let Some(chunk) = stream.next().await {
         let bytes = chunk.map_err(|e| format!("Stream error: {e}"))?;
         buf.push_str(&String::from_utf8_lossy(&bytes));
 
@@ -269,7 +283,7 @@ pub async fn chat_completion_stream<F: FnMut(&str)>(
             };
             let data = data.trim();
             if data == "[DONE]" {
-                return Ok(full);
+                break 'outer;
             }
             if data.is_empty() {
                 continue;
@@ -277,13 +291,25 @@ pub async fn chat_completion_stream<F: FnMut(&str)>(
 
             // Tolerate frames that carry no content delta (role headers, etc.).
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(data) {
-                if let Some(tok) = v["choices"][0]["delta"]["content"].as_str() {
-                    full.push_str(tok);
-                    on_token(tok);
+                let delta = &v["choices"][0]["delta"];
+                if let Some(tok) = delta["content"].as_str() {
+                    if !tok.is_empty() {
+                        content_full.push_str(tok);
+                        on_token(tok);
+                    }
+                }
+                if let Some(rtok) = delta["reasoning_content"].as_str() {
+                    reasoning_full.push_str(rtok);
                 }
             }
         }
     }
 
-    Ok(full)
+    // If the model only produced "thinking" (no content), show the reasoning so
+    // the reply isn't blank.
+    if content_full.trim().is_empty() && !reasoning_full.trim().is_empty() {
+        on_token(&reasoning_full);
+        return Ok(reasoning_full);
+    }
+    Ok(content_full)
 }
