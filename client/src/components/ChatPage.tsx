@@ -23,6 +23,8 @@ interface ChatPageProps {
   conversationId: string;
   onOpenInfo: () => void;
   onToggleFavorite: () => void;
+  /** Called when the user sends, so the history list can bump this chat. */
+  onActivity: (conversationId: string) => void;
 }
 
 /** Conversation screen — message thread, composer, character panel. */
@@ -32,6 +34,7 @@ export default function ChatPage({
   conversationId,
   onOpenInfo,
   onToggleFavorite,
+  onActivity,
 }: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
@@ -79,6 +82,7 @@ export default function ChatPage({
     const isContinue = content === '';
     if (isContinue && messages.length === 0) return;
     setDraft('');
+    onActivity(conversationId); // move this chat to the top of history now
 
     // For a normal send, add an optimistic user bubble. For a continue send, add
     // nothing for the user (the technical message stays hidden). Both add an

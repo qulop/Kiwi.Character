@@ -151,6 +151,16 @@ export default function App() {
     }
   };
 
+  // Bump a conversation to the top of history (into "Today") as the user chats.
+  const onChatActivity = (convId: string) => {
+    setHistory((h) => {
+      const idx = h.findIndex((x) => x.id === convId);
+      if (idx === -1) return h; // openCharacter already inserts it
+      const item = { ...h[idx], lastMessageAt: Date.now() };
+      return [item, ...h.filter((_, i) => i !== idx)];
+    });
+  };
+
   const deleteChat = async (h: HistoryItem) => {
     setHistory((list) => list.filter((x) => x.id !== h.id));
     if (conversationId === h.id) {
@@ -196,6 +206,7 @@ export default function App() {
           conversationId={conversationId}
           onOpenInfo={() => openCharacterInfo(activeCharacter)}
           onToggleFavorite={() => toggleFavorite(activeCharacter)}
+          onActivity={onChatActivity}
         />
       )}
 
