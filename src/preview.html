@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Kiwi.Character — React preview</title>
-<link rel="stylesheet" href="./src/styles.css" />
+<link rel="stylesheet" href="./styles.css" />
 <!-- React + Babel from CDN. DEV-ONLY preview; the real app builds with Vite. -->
 <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -85,20 +85,22 @@ const STUBS = {
   react: window.React,
   'react-dom': window.ReactDOM,
   'react-dom/client': window.ReactDOM,
-  '@tauri-apps/api/core': { invoke: mockInvoke },
+  '@tauri-apps/api/core': { invoke: mockInvoke, convertFileSrc: (p) => p },
   '@tauri-apps/api/event': { listen: async () => () => {} },
 };
 
 const FILES = [
-  'src/types.ts',
-  'src/api.ts',
-  'src/components/icons.tsx',
-  'src/components/Sidebar.tsx',
-  'src/components/SettingsModal.tsx',
-  'src/components/NewCharacterModal.tsx',
-  'src/components/MainPage.tsx',
-  'src/components/ChatPage.tsx',
-  'src/App.tsx',
+  'types.ts',
+  'events.ts',
+  'api.ts',
+  'components/icons.tsx',
+  'components/Avatar.tsx',
+  'components/Sidebar.tsx',
+  'components/SettingsModal.tsx',
+  'components/CharacterFormModal.tsx',
+  'components/MainPage.tsx',
+  'components/ChatPage.tsx',
+  'App.tsx',
 ];
 
 const idOf = (file) => file.replace(/\.(tsx|ts)$/, '');
@@ -148,7 +150,7 @@ function makeRequire(fromId) {
       // eslint-disable-next-line no-new-func
       factories[idOf(file)] = new Function('require', 'module', 'exports', out);
     }
-    const App = makeRequire('boot')('./src/App').default;
+    const App = makeRequire('boot')('./App').default;
     window.ReactDOM.createRoot(document.getElementById('root')).render(window.React.createElement(App));
   } catch (err) {
     document.getElementById('root').innerHTML =
