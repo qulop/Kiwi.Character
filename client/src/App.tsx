@@ -179,7 +179,7 @@ export default function App() {
               initial={settings}
               onClose={() => setModal(null)}
               onTest={api.testEndpoint}
-              onLoad={(s) => { setSettings(s); api.saveSettings(s).catch(console.error); api.loadModel(s).catch(console.error); setModal(null); }}
+              onLoad={async (s) => { setSettings(s); await api.loadModel(s); }}
             />
           )}
           {modal === 'new' && (

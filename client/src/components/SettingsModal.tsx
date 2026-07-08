@@ -7,8 +7,8 @@ interface SettingsModalProps {
   onClose: () => void;
   /** Ping the endpoint; resolve with the available model list. */
   onTest: (endpoint: string) => Promise<EndpointTestResult>;
-  /** Persist + load the chosen model config. */
-  onLoad: (settings: ModelSettings) => void;
+  /** Persist + load the chosen model on the server. Rejects on failure. */
+  onLoad: (settings: ModelSettings) => Promise<void>;
 }
 
 /**
@@ -31,6 +31,8 @@ export default function SettingsModal({
   ]);
   const [advanced, setAdvanced] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadResult, setLoadResult] = useState<{ ok: boolean; text: string } | null>(null);
 
   const set = <K extends keyof ModelSettings>(k: K, v: ModelSettings[K]) =>
     setS((prev) => ({ ...prev, [k]: v }));
@@ -46,6 +48,19 @@ export default function SettingsModal({
       }
     } finally {
       setTesting(false);
+    }
+  };
+
+  const load = async () => {
+    setLoading(true);
+    setLoadResult(null);
+    try {
+      await onLoad(s);
+      setLoadResult({ ok: true, text: `Loaded “${s.model}”.` });
+    } catch (e) {
+      setLoadResult({ ok: false, text: String(e) });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -132,7 +147,17 @@ export default function SettingsModal({
       </div>
 
       <div className="kc-modal-foot">
-        <button className={'kc-primary-btn' + lock} onClick={() => onLoad(s)}>Load model</button>
+        {loadResult && (
+          <span
+            className={loadResult.ok ? 'kc-status-ok' : 'kc-form-error'}
+            style={{ marginRight: 'auto', alignSelf: 'center' }}
+          >
+            {loadResult.ok ? '✓ ' : '⚠️ '}{loadResult.text}
+          </span>
+        )}
+        <button className={'kc-primary-btn' + lock} onClick={load} disabled={!verified || loading}>
+          {loading ? 'Loading…' : 'Load model'}
+        </button>
       </div>
     </div>
   );
