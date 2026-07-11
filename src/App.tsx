@@ -54,6 +54,15 @@ export default function App() {
   const backModal = () => setModalStack((s) => s.slice(0, -1));
   const [search, setSearch] = useState('');
 
+  // Escape closes every pop-up in the stack at once, regardless of depth.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeModals();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const [characters, setCharacters] = useState<Character[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -359,7 +368,7 @@ export default function App() {
               submitLabel="Create persona"
               initial={EMPTY_PERSONA_INPUT}
               onClose={closeModals}
-              onBack={backModal}
+              onBack={modalStack.length > 1 ? backModal : undefined}
               onSubmit={createPersona}
             />
           )}
@@ -369,7 +378,7 @@ export default function App() {
               submitLabel="Save"
               initial={personaToInput(editingPersona)}
               onClose={closeModals}
-              onBack={backModal}
+              onBack={modalStack.length > 1 ? backModal : undefined}
               onSubmit={updatePersona}
             />
           )}

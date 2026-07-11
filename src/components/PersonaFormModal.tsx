@@ -7,10 +7,11 @@ interface PersonaFormModalProps {
   submitLabel: string;
   /** Empty values for create, or the persona's current data for edit. */
   initial: NewPersonaInput;
-  /** Always opened as an overlap of the Personas list: × closes everything,
-   * the back arrow returns to just that list. Both are shown, × on the left. */
+  /** × always closes everything. The back arrow only appears — to the right
+   * of × — when this pop-up is stacked on top of another one; pass it only
+   * in that case (omit/undefined when this is the only pop-up open). */
   onClose: () => void;
-  onBack: () => void;
+  onBack?: () => void;
   onSubmit: (input: NewPersonaInput) => void | Promise<void>;
 }
 
@@ -66,9 +67,11 @@ export default function PersonaFormModal({
         <span className="kc-modal-title">{title}</span>
         <div className="kc-modal-head-actions">
           <button className="kc-modal-close" onClick={onClose} aria-label="Close">×</button>
-          <button className="kc-modal-close" onClick={onBack} aria-label="Back">
-            <BackIcon />
-          </button>
+          {onBack && (
+            <button className="kc-modal-close" onClick={onBack} aria-label="Back">
+              <BackIcon />
+            </button>
+          )}
         </div>
       </div>
       <div className="kc-divider" />
