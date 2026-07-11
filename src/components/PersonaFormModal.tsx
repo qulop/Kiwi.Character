@@ -2,19 +2,29 @@ import React, { useRef, useState } from 'react';
 import type { NewPersonaInput } from '../types';
 import { PersonaGlyph, UploadGlyph, BackIcon } from './icons';
 
-const EMPTY: NewPersonaInput = { name: '', description: '', avatar: null };
-
 interface PersonaFormModalProps {
-  /** Always opened as an overlap of the Personas list, so the header shows a
-   * back arrow (never a plain ×) — going back returns to that list. */
+  title: string;
+  submitLabel: string;
+  /** Empty values for create, or the persona's current data for edit. */
+  initial: NewPersonaInput;
+  /** Always opened as an overlap of the Personas list: × closes everything,
+   * the back arrow returns to just that list. Both are shown, × on the left. */
+  onClose: () => void;
   onBack: () => void;
   onSubmit: (input: NewPersonaInput) => void | Promise<void>;
 }
 
-/** Create-persona form — same structure/style as CharacterFormModal, but with
- * only the two fields a persona needs. */
-export default function PersonaFormModal({ onBack, onSubmit }: PersonaFormModalProps) {
-  const [form, setForm] = useState<NewPersonaInput>(EMPTY);
+/** Create/edit persona form — same structure/style as CharacterFormModal, but
+ * with only the two fields a persona needs. */
+export default function PersonaFormModal({
+  title,
+  submitLabel,
+  initial,
+  onClose,
+  onBack,
+  onSubmit,
+}: PersonaFormModalProps) {
+  const [form, setForm] = useState<NewPersonaInput>(initial);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -53,10 +63,13 @@ export default function PersonaFormModal({ onBack, onSubmit }: PersonaFormModalP
     <div className="kc-modal kc-modal--new" onClick={(e) => e.stopPropagation()}>
       <div className="kc-modal-head">
         <PersonaGlyph />
-        <span className="kc-modal-title">New Persona</span>
-        <button className="kc-modal-close" onClick={onBack} aria-label="Back">
-          <BackIcon />
-        </button>
+        <span className="kc-modal-title">{title}</span>
+        <div className="kc-modal-head-actions">
+          <button className="kc-modal-close" onClick={onClose} aria-label="Close">×</button>
+          <button className="kc-modal-close" onClick={onBack} aria-label="Back">
+            <BackIcon />
+          </button>
+        </div>
       </div>
       <div className="kc-divider" />
 
@@ -85,7 +98,7 @@ export default function PersonaFormModal({ onBack, onSubmit }: PersonaFormModalP
       <div className="kc-modal-foot">
         {error && <span className="kc-form-error">{error}</span>}
         <button className="kc-primary-btn kc-primary-btn--pill" disabled={!canSubmit} onClick={submit}>
-          {busy ? 'Saving…' : 'Create persona'}
+          {busy ? 'Saving…' : submitLabel}
         </button>
       </div>
     </div>

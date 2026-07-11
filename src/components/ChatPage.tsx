@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
-import type { Character, ChatMessage } from '../types';
+import type { Character, ChatMessage, Persona } from '../types';
 import * as api from '../api';
 import { CHAT_TOKEN, CHAT_DONE, CHAT_ERROR } from '../events';
 import Avatar from './Avatar';
@@ -15,6 +15,7 @@ import {
   PenIcon,
   HeartIcon,
   HeartFilledIcon,
+  MinusIcon,
 } from './icons';
 
 interface ChatPageProps {
@@ -26,6 +27,9 @@ interface ChatPageProps {
   /** Called when the user sends, so the history list can bump this chat. */
   onActivity: (conversationId: string) => void;
   onOpenPersonas: () => void;
+  /** The persona currently selected for this chat, if any. */
+  activePersona: Persona | null;
+  onRemoveActivePersona: () => void;
 }
 
 /** Conversation screen — message thread, composer, character panel. */
@@ -37,6 +41,8 @@ export default function ChatPage({
   onToggleFavorite,
   onActivity,
   onOpenPersonas,
+  activePersona,
+  onRemoveActivePersona,
 }: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
@@ -348,6 +354,22 @@ export default function ChatPage({
           </button>
         </div>
         <div className="kc-rpanel-info">{character.info}</div>
+        <div className="kc-divider" style={{ margin: '2px 0' }} />
+        <div className="kc-section-label" style={{ padding: 0 }}>Current persona</div>
+        {activePersona ? (
+          <div className="kc-current-persona-card">
+            <Avatar character={activePersona} className="kc-persona-avatar" />
+            <span className="kc-persona-name">{activePersona.name}</span>
+            <button className="kc-persona-remove" aria-label="Remove active persona" onClick={onRemoveActivePersona}>
+              <MinusIcon />
+            </button>
+          </div>
+        ) : (
+          <div className="kc-current-persona-card kc-current-persona-card--empty">
+            <div className="kc-avatar kc-persona-avatar" />
+            <span className="kc-persona-name">No active persona</span>
+          </div>
+        )}
         <div className="kc-divider" style={{ margin: '2px 0' }} />
         <div className="kc-section-label" style={{ padding: 0 }}>Personas</div>
         <button className="kc-personas-btn" onClick={onOpenPersonas}>

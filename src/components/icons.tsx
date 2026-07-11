@@ -104,6 +104,12 @@ export const BackIcon = () => (
   </svg>
 );
 
+export const MinusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="5" y1="12" x2="19" y2="12" strokeLinecap="round" />
+  </svg>
+);
+
 export const PenIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
     <path d="M4 20h4L18 10a2 2 0 0 0-4-4L4 16v4z" strokeLinejoin="round" />

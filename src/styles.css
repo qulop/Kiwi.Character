@@ -746,6 +746,9 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   cursor: pointer;
 }
 .kc-modal-close:hover { border-color: var(--ink); color: var(--ink); }
+/* When a pop-up shows both close (×) and back (<) — × sits on the left. */
+.kc-modal-head-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.kc-modal-head-actions .kc-modal-close { margin-left: 0; }
 .kc-divider { flex: 0 0 auto; height: 1px; background: var(--line2); }
 .kc-modal-body {
   flex: 1 1 auto;
@@ -776,7 +779,11 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   background: var(--panel2);
   border: 1px solid var(--line2);
   border-radius: var(--radius-hand-sm);
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s;
 }
+.kc-persona-card:hover { border-color: var(--acc); }
+.kc-persona-card.active { border-color: var(--acc); background: var(--accSoft); }
 .kc-persona-avatar { width: 40px; height: 40px; font-size: 17px; flex: 0 0 auto; }
 .kc-persona-name {
   flex: 1 1 auto;
@@ -788,6 +795,7 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.kc-persona-edit,
 .kc-persona-delete {
   flex: 0 0 auto;
   display: inline-flex;
@@ -798,10 +806,30 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
   border-radius: 9px;
   background: transparent;
   border: none;
-  color: #ff6b6b;
   cursor: pointer;
 }
+.kc-persona-edit { color: var(--muted); }
+.kc-persona-edit:hover { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
+.kc-persona-delete { color: #ff6b6b; }
 .kc-persona-delete:hover { background: rgba(255, 80, 80, 0.12); }
+
+/* "Current persona" card on the chat page — same layout, no border. */
+.kc-current-persona-card { display: flex; align-items: center; gap: 12px; padding: 4px 2px; }
+.kc-current-persona-card--empty .kc-persona-name { color: var(--muted); }
+.kc-persona-remove {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.kc-persona-remove:hover { background: rgba(255, 255, 255, 0.08); color: var(--ink); }
 
 .kc-field { display: flex; flex-direction: column; gap: 7px; }
 .kc-field-label { font-size: 16px; }

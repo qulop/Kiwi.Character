@@ -87,8 +87,23 @@ export async function createPersona(input: NewPersonaInput): Promise<Persona> {
   return withPersonaAvatarUrl(await invoke<Persona>('create_persona', { input }));
 }
 
+export async function updatePersona(id: string, input: NewPersonaInput): Promise<Persona> {
+  return withPersonaAvatarUrl(await invoke<Persona>('update_persona', { id, input }));
+}
+
 export function deletePersona(personaId: string): Promise<void> {
   return invoke('delete_persona', { personaId });
+}
+
+/** The persona currently selected for this chat, or null. Persists across launches. */
+export async function getActivePersona(conversationId: string): Promise<Persona | null> {
+  const p = await invoke<Persona | null>('get_active_persona', { conversationId });
+  return p ? withPersonaAvatarUrl(p) : null;
+}
+
+/** Select (or, with `null`, clear) the persona for this chat. */
+export function setActivePersona(conversationId: string, personaId: string | null): Promise<void> {
+  return invoke('set_active_persona', { conversationId, personaId });
 }
 
 // ---- History / conversations --------------------------------------------

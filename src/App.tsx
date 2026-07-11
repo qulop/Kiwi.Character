@@ -19,11 +19,13 @@ import PersonaFormModal from './components/PersonaFormModal';
 import { NewCharIcon, InfoIcon } from './components/icons';
 
 type Page = 'main' | 'chat';
-type ModalKind = 'settings' | 'new' | 'info' | 'personas' | 'new-persona';
+type ModalKind = 'settings' | 'new' | 'info' | 'personas' | 'new-persona' | 'persona-info';
 
 const EMPTY_INPUT: NewCharacterInput = {
   name: '', info: '', appearance: '', description: '', initialMessage: '', avatar: null,
 };
+
+const EMPTY_PERSONA_INPUT: NewPersonaInput = { name: '', description: '', avatar: null };
 
 const characterToInput = (c: Character): NewCharacterInput => ({
   name: c.name,
@@ -32,6 +34,12 @@ const characterToInput = (c: Character): NewCharacterInput => ({
   description: c.description ?? '',
   initialMessage: c.initialMessage ?? '',
   avatar: c.avatar ?? null,
+});
+
+const personaToInput = (p: Persona): NewPersonaInput => ({
+  name: p.name,
+  description: p.description,
+  avatar: p.avatar ?? null,
 });
 
 export default function App() {
@@ -59,6 +67,8 @@ export default function App() {
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
   const [conversationId, setConversationId] = useState<string>('');
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
+  const [editingPersona, setEditingPersona] = useState<Persona | null>(null);
+  const [activePersona, setActivePersona] = useState<Persona | null>(null);
 
   // Initial load from the Rust backend.
   useEffect(() => {
@@ -91,6 +101,18 @@ export default function App() {
     return () => { alive = false; clearInterval(id); };
   }, [settings.endpoint]);
 
+  // Load the persona selected for this chat (persisted in the DB) whenever the
+  // open conversation changes.
+  useEffect(() => {
+    if (page !== 'chat' || !conversationId) {
+      setActivePersona(null);
+      return;
+    }
+    let alive = true;
+    api.getActivePersona(conversationId).then((p) => { if (alive) setActivePersona(p); }).catch(console.error);
+    return () => { alive = false; };
+  }, [page, conversationId]);
+
   const openCharacter = (c: Character) => {
     setActiveCharacter(c);
     const convId = 'conv-' + c.id;
@@ -112,6 +134,11 @@ export default function App() {
     openModal('info');
   };
 
+  const openPersonaInfo = (p: Persona) => {
+    setEditingPersona(p);
+    openModal('persona-info');
+  };
+
   const createPersona = async (input: NewPersonaInput) => {
     const created = await api.createPersona(input);
     setPersonas((ps) => [created, ...ps]);
@@ -119,10 +146,39 @@ export default function App() {
     backModal();
   };
 
+  const updatePersona = async (input: NewPersonaInput) => {
+    if (!editingPersona) return;
+    const updated = await api.updatePersona(editingPersona.id, input);
+    setPersonas((ps) => ps.map((x) => (x.id === updated.id ? updated : x)));
+    setActivePersona((cur) => (cur?.id === updated.id ? updated : cur));
+    // Return to the Personas list (not a full close), same as after create.
+    backModal();
+  };
+
   const deletePersona = async (p: Persona) => {
     setPersonas((ps) => ps.filter((x) => x.id !== p.id));
+    setActivePersona((cur) => (cur?.id === p.id ? null : cur));
     try {
       await api.deletePersona(p.id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const selectPersona = async (p: Persona) => {
+    setActivePersona(p);
+    closeModals();
+    try {
+      await api.setActivePersona(conversationId, p.id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const clearActivePersona = async () => {
+    setActivePersona(null);
+    try {
+      await api.setActivePersona(conversationId, null);
     } catch (e) {
       console.error(e);
     }
@@ -242,6 +298,8 @@ export default function App() {
           onToggleFavorite={() => toggleFavorite(activeCharacter)}
           onActivity={onChatActivity}
           onOpenPersonas={() => openModal('personas')}
+          activePersona={activePersona}
+          onRemoveActivePersona={clearActivePersona}
         />
       )}
 
@@ -286,13 +344,33 @@ export default function App() {
           {modal === 'personas' && (
             <PersonasModal
               personas={personas}
+              activePersonaId={activePersona?.id}
               onClose={closeModals}
               onCreate={() => openModal('new-persona')}
+              onEdit={openPersonaInfo}
               onDelete={deletePersona}
+              onSelect={selectPersona}
             />
           )}
           {modal === 'new-persona' && (
-            <PersonaFormModal onBack={backModal} onSubmit={createPersona} />
+            <PersonaFormModal
+              title="New Persona"
+              submitLabel="Create persona"
+              initial={EMPTY_PERSONA_INPUT}
+              onClose={closeModals}
+              onBack={backModal}
+              onSubmit={createPersona}
+            />
+          )}
+          {modal === 'persona-info' && editingPersona && (
+            <PersonaFormModal
+              title="Persona Info"
+              submitLabel="Save"
+              initial={personaToInput(editingPersona)}
+              onClose={closeModals}
+              onBack={backModal}
+              onSubmit={updatePersona}
+            />
           )}
         </div>
       )}
