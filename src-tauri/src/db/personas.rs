@@ -18,17 +18,23 @@ fn row_to_persona(r: &Row) -> rusqlite::Result<Persona> {
     })
 }
 
+const SELECT_PERSONA: &str =
+    "SELECT id, name, description, avatar_path, is_default, created_at FROM personas";
+
 pub fn list(conn: &Connection) -> Result<Vec<Persona>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, name, description, avatar_path, is_default, created_at
-             FROM personas ORDER BY created_at DESC",
-        )
-        .map_err(|e| e.to_string())?;
+    let sql = format!("{SELECT_PERSONA} ORDER BY created_at DESC");
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt
         .query_map([], row_to_persona)
         .map_err(|e| e.to_string())?;
     rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| e.to_string())
+}
+
+pub fn get(conn: &Connection, id: &str) -> Result<Option<Persona>, String> {
+    let sql = format!("{SELECT_PERSONA} WHERE id = ?1");
+    conn.query_row(&sql, params![id], row_to_persona)
+        .optional()
         .map_err(|e| e.to_string())
 }
 
@@ -67,6 +73,47 @@ pub fn insert(
     })
 }
 
+/// Update an existing persona. `input.avatar`:
+///   - a "data:" URL -> decode, save a new file, replace avatar_path (delete old)
+///   - anything else  -> leave the stored avatar untouched
+pub fn update(
+    conn: &Connection,
+    avatars_dir: &Path,
+    id: &str,
+    input: NewPersonaInput,
+) -> Result<Persona, String> {
+    let name = input.name.trim().to_string();
+    if name.is_empty() {
+        return Err("Persona name is required".into());
+    }
+
+    let new_avatar = match input.avatar.as_deref() {
+        Some(a) if a.starts_with("data:") => Some(super::save_avatar(avatars_dir, id, a)?),
+        _ => None,
+    };
+
+    if let Some(path) = &new_avatar {
+        if let Some(prev) = get(conn, id)?.and_then(|p| p.avatar) {
+            if prev.as_str() != path.as_str() {
+                super::remove_avatar_file(avatars_dir, &prev);
+            }
+        }
+        conn.execute(
+            "UPDATE personas SET name=?2, description=?3, avatar_path=?4, updated_at=?5 WHERE id=?1",
+            params![id, name, input.description, path, now_ms()],
+        )
+        .map_err(|e| e.to_string())?;
+    } else {
+        conn.execute(
+            "UPDATE personas SET name=?2, description=?3, updated_at=?4 WHERE id=?1",
+            params![id, name, input.description, now_ms()],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    get(conn, id)?.ok_or_else(|| format!("Persona '{id}' not found"))
+}
+
 fn avatar_of(conn: &Connection, id: &str) -> Result<Option<String>, String> {
     conn.query_row(
         "SELECT avatar_path FROM personas WHERE id = ?1",
@@ -78,11 +125,17 @@ fn avatar_of(conn: &Connection, id: &str) -> Result<Option<String>, String> {
     .map(|opt| opt.flatten())
 }
 
-/// Delete a persona. Removes its avatar file (best-effort).
+/// Delete a persona. Removes its avatar file (best-effort) and clears any
+/// conversation that had it selected as the active persona.
 pub fn delete(conn: &Connection, avatars_dir: &Path, id: &str) -> Result<(), String> {
     if let Some(rel) = avatar_of(conn, id)? {
         super::remove_avatar_file(avatars_dir, &rel);
     }
+    conn.execute(
+        "UPDATE conversations SET active_persona_id = NULL WHERE active_persona_id = ?1",
+        params![id],
+    )
+    .map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM personas WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
     Ok(())

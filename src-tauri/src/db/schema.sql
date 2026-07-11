@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS conversations (
     character_id    TEXT    NOT NULL
                         REFERENCES characters(id) ON DELETE CASCADE,
     created_at      INTEGER NOT NULL,           -- ms epoch
-    last_message_at INTEGER                     -- ms epoch of newest message; NULL until first message
+    last_message_at INTEGER,                    -- ms epoch of newest message; NULL until first message
+    active_persona_id TEXT                      -- NULL when no persona is selected for this chat
 );
 
 CREATE INDEX IF NOT EXISTS idx_conversations_character

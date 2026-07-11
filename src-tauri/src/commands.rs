@@ -114,9 +114,50 @@ pub fn create_persona(
 }
 
 #[tauri::command]
+pub fn update_persona(
+    id: String,
+    input: NewPersonaInput,
+    state: State<'_, AppState>,
+) -> Result<Persona, String> {
+    let db = state.db.lock().unwrap();
+    let mut p = db::personas::update(&db.conn, &db.avatars_dir, &id, input)?;
+    p.avatar = absolute_avatar(&db.avatars_dir, p.avatar.take());
+    Ok(p)
+}
+
+#[tauri::command]
 pub fn delete_persona(persona_id: String, state: State<'_, AppState>) -> Result<(), String> {
     let db = state.db.lock().unwrap();
     db::personas::delete(&db.conn, &db.avatars_dir, &persona_id)
+}
+
+/// The persona currently selected for this chat, if any (survives relaunch).
+#[tauri::command]
+pub fn get_active_persona(
+    conversation_id: String,
+    state: State<'_, AppState>,
+) -> Result<Option<Persona>, String> {
+    let db = state.db.lock().unwrap();
+    let Some(pid) = db::conversations::active_persona_id(&db.conn, &conversation_id)? else {
+        return Ok(None);
+    };
+    let mut p = db::personas::get(&db.conn, &pid)?;
+    if let Some(p) = &mut p {
+        p.avatar = absolute_avatar(&db.avatars_dir, p.avatar.take());
+    }
+    Ok(p)
+}
+
+/// Select (or, with `None`, clear) the persona for this chat.
+#[tauri::command]
+pub fn set_active_persona(
+    conversation_id: String,
+    persona_id: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::conversations::ensure(&db.conn, &conversation_id)?;
+    db::conversations::set_active_persona(&db.conn, &conversation_id, persona_id.as_deref())
 }
 
 // ---- History / conversations --------------------------------------------

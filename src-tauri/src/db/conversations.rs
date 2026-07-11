@@ -59,6 +59,32 @@ pub fn character_id_of(conn: &Connection, conversation_id: &str) -> Result<Strin
     .map_err(|e| e.to_string())
 }
 
+/// The persona currently selected for this chat, if any.
+pub fn active_persona_id(conn: &Connection, conversation_id: &str) -> Result<Option<String>, String> {
+    conn.query_row(
+        "SELECT active_persona_id FROM conversations WHERE id = ?1",
+        params![conversation_id],
+        |r| r.get::<_, Option<String>>(0),
+    )
+    .optional()
+    .map_err(|e| e.to_string())
+    .map(|opt| opt.flatten())
+}
+
+/// Set (or clear, with `None`) the persona selected for this chat.
+pub fn set_active_persona(
+    conn: &Connection,
+    conversation_id: &str,
+    persona_id: Option<&str>,
+) -> Result<(), String> {
+    conn.execute(
+        "UPDATE conversations SET active_persona_id = ?2 WHERE id = ?1",
+        params![conversation_id, persona_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Delete a conversation (and its messages, via cascade). The character stays;
 /// opening it again re-creates a fresh conversation with the greeting.
 pub fn delete(conn: &Connection, conversation_id: &str) -> Result<(), String> {

@@ -15,7 +15,7 @@ pub mod personas;
 pub mod settings;
 
 const SCHEMA: &str = include_str!("schema.sql");
-const SCHEMA_VERSION: i64 = 2;
+const SCHEMA_VERSION: i64 = 3;
 
 /// Owns the database connection and knows where avatar files live.
 pub struct Db {
@@ -100,6 +100,11 @@ fn migrate(conn: &Connection, from_version: i64) -> Result<(), String> {
     // v2: messages gained a `hidden` flag (technical "continue" messages).
     if from_version < 2 {
         add_column_if_missing(conn, "messages", "hidden", "INTEGER NOT NULL DEFAULT 0")?;
+    }
+    // v3: conversations gained an active_persona_id (which persona is selected
+    // for that chat), remembered across launches.
+    if from_version < 3 {
+        add_column_if_missing(conn, "conversations", "active_persona_id", "TEXT")?;
     }
     Ok(())
 }
