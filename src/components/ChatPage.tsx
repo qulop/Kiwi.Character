@@ -285,10 +285,14 @@ export default function ChatPage({
                 )
               ) : (
                 <div key={m.id} className="kc-msg-row user">
-                  <div className="kc-avatar kc-avatar--user kc-msg-avatar"><UserGlyph /></div>
+                  {activePersona ? (
+                    <Avatar character={activePersona} className="kc-msg-avatar" />
+                  ) : (
+                    <div className="kc-avatar kc-avatar--user kc-msg-avatar"><UserGlyph /></div>
+                  )}
                   <div className="kc-msg-col">
                     <div className="kc-msg-top">
-                      <span className="kc-msg-author">User</span>
+                      <span className="kc-msg-author">{activePersona ? activePersona.name : 'User'}</span>
                       {renderMenu(m)}
                     </div>
                     {editingId === m.id ? (
