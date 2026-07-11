@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { Character, HistoryItem, ModelSettings, NewCharacterInput } from './types';
+import type {
+  Character,
+  HistoryItem,
+  ModelSettings,
+  NewCharacterInput,
+  Persona,
+  NewPersonaInput,
+} from './types';
 import { DEFAULT_SETTINGS } from './types';
 import * as api from './api';
 import Sidebar from './components/Sidebar';
@@ -7,10 +14,12 @@ import MainPage from './components/MainPage';
 import ChatPage from './components/ChatPage';
 import SettingsModal from './components/SettingsModal';
 import CharacterFormModal from './components/CharacterFormModal';
+import PersonasModal from './components/PersonasModal';
+import PersonaFormModal from './components/PersonaFormModal';
 import { NewCharIcon, InfoIcon } from './components/icons';
 
 type Page = 'main' | 'chat';
-type Modal = 'settings' | 'new' | 'info' | null;
+type ModalKind = 'settings' | 'new' | 'info' | 'personas' | 'new-persona';
 
 const EMPTY_INPUT: NewCharacterInput = {
   name: '', info: '', appearance: '', description: '', initialMessage: '', avatar: null,
@@ -27,11 +36,19 @@ const characterToInput = (c: Character): NewCharacterInput => ({
 
 export default function App() {
   const [page, setPage] = useState<Page>('main');
-  const [modal, setModal] = useState<Modal>(null);
+  // A stack (not a single value) so an overlapping pop-up — e.g. "New Persona"
+  // opened from "Personas" — remembers what's underneath it and can return to
+  // it (back arrow) instead of only ever closing everything.
+  const [modalStack, setModalStack] = useState<ModalKind[]>([]);
+  const modal = modalStack[modalStack.length - 1] ?? null;
+  const openModal = (m: ModalKind) => setModalStack((s) => [...s, m]);
+  const closeModals = () => setModalStack([]);
+  const backModal = () => setModalStack((s) => s.slice(0, -1));
   const [search, setSearch] = useState('');
 
   const [characters, setCharacters] = useState<Character[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [personas, setPersonas] = useState<Persona[]>([]);
   const [settings, setSettings] = useState<ModelSettings>(DEFAULT_SETTINGS);
   const [endpointStatus, setEndpointStatus] = useState<{
     online: boolean;
@@ -47,6 +64,7 @@ export default function App() {
   useEffect(() => {
     api.listCharacters().then(setCharacters).catch(console.error);
     api.listHistory().then(setHistory).catch(console.error);
+    api.listPersonas().then(setPersonas).catch(console.error);
     api.getSettings().then(setSettings).catch(() => { /* keep defaults */ });
   }, []);
 
@@ -91,7 +109,23 @@ export default function App() {
 
   const openCharacterInfo = (c: Character) => {
     setEditingCharacter(c);
-    setModal('info');
+    openModal('info');
+  };
+
+  const createPersona = async (input: NewPersonaInput) => {
+    const created = await api.createPersona(input);
+    setPersonas((ps) => [created, ...ps]);
+    // Return to the Personas list (not a full close) so the new card is visible.
+    backModal();
+  };
+
+  const deletePersona = async (p: Persona) => {
+    setPersonas((ps) => ps.filter((x) => x.id !== p.id));
+    try {
+      await api.deletePersona(p.id);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const openHistory = (h: HistoryItem) => {
@@ -106,7 +140,7 @@ export default function App() {
     // open and show the error; on success we jump straight into the new chat.
     const created = await api.createCharacter(input);
     setCharacters((cs) => [created, ...cs]);
-    setModal(null);
+    closeModals();
     openCharacter(created);
   };
 
@@ -122,7 +156,7 @@ export default function App() {
         x.characterId === updated.id ? { ...x, name: updated.name, avatar: updated.avatar ?? null } : x,
       ),
     );
-    setModal(null);
+    closeModals();
     setEditingCharacter(null);
   };
 
@@ -181,8 +215,8 @@ export default function App() {
       search={search}
       onSearch={setSearch}
       onBrand={() => setPage('main')}
-      onCreate={() => setModal('new')}
-      onSettings={() => setModal('settings')}
+      onCreate={() => openModal('new')}
+      onSettings={() => openModal('settings')}
       onSelect={openHistory}
       onDeleteChat={deleteChat}
     />
@@ -207,6 +241,7 @@ export default function App() {
           onOpenInfo={() => openCharacterInfo(activeCharacter)}
           onToggleFavorite={() => toggleFavorite(activeCharacter)}
           onActivity={onChatActivity}
+          onOpenPersonas={() => openModal('personas')}
         />
       )}
 
@@ -219,7 +254,7 @@ export default function App() {
               initialVerified={endpointStatus.online}
               initialModels={endpointStatus.models}
               initialLoaded={endpointStatus.loaded}
-              onClose={() => setModal(null)}
+              onClose={closeModals}
               onTest={api.testEndpoint}
               onLoad={async (s) => { setSettings(s); await api.loadModel(s); }}
               onRefreshLoaded={api.loadedModels}
@@ -233,7 +268,7 @@ export default function App() {
               icon={<NewCharIcon />}
               submitLabel="Create Character"
               initial={EMPTY_INPUT}
-              onClose={() => setModal(null)}
+              onClose={closeModals}
               onSubmit={createCharacter}
             />
           )}
@@ -244,9 +279,20 @@ export default function App() {
               submitLabel="Save"
               initial={characterToInput(editingCharacter)}
               excludeId={editingCharacter.id}
-              onClose={() => { setModal(null); setEditingCharacter(null); }}
+              onClose={() => { closeModals(); setEditingCharacter(null); }}
               onSubmit={updateCharacter}
             />
+          )}
+          {modal === 'personas' && (
+            <PersonasModal
+              personas={personas}
+              onClose={closeModals}
+              onCreate={() => openModal('new-persona')}
+              onDelete={deletePersona}
+            />
+          )}
+          {modal === 'new-persona' && (
+            <PersonaFormModal onBack={backModal} onSubmit={createPersona} />
           )}
         </div>
       )}

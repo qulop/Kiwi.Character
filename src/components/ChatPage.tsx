@@ -25,6 +25,7 @@ interface ChatPageProps {
   onToggleFavorite: () => void;
   /** Called when the user sends, so the history list can bump this chat. */
   onActivity: (conversationId: string) => void;
+  onOpenPersonas: () => void;
 }
 
 /** Conversation screen — message thread, composer, character panel. */
@@ -35,6 +36,7 @@ export default function ChatPage({
   onOpenInfo,
   onToggleFavorite,
   onActivity,
+  onOpenPersonas,
 }: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [typing, setTyping] = useState(false);
@@ -348,10 +350,9 @@ export default function ChatPage({
         <div className="kc-rpanel-info">{character.info}</div>
         <div className="kc-divider" style={{ margin: '2px 0' }} />
         <div className="kc-section-label" style={{ padding: 0 }}>Personas</div>
-        <button className="kc-personas-btn" disabled>
+        <button className="kc-personas-btn" onClick={onOpenPersonas}>
           <PersonaGlyph /> Personas
         </button>
-        <div className="kc-personas-hint">Persona selection — coming soon</div>
       </aside>
     </div>
   );

@@ -32,6 +32,25 @@ export interface NewCharacterInput {
   avatar?: string | null;
 }
 
+/** A user persona — who the user is presenting as in a chat. */
+export interface Persona {
+  id: string;
+  name: string;
+  description: string;
+  /** Optional avatar image (data URL, file path, or asset URL). */
+  avatar?: string | null;
+  /** Reserved for a future "default persona" feature — always false for now. */
+  isDefault?: boolean;
+  createdAt?: number;
+}
+
+/** Payload for creating a new persona (no id yet). */
+export interface NewPersonaInput {
+  name: string;
+  description: string;
+  avatar?: string | null;
+}
+
 export type Role = 'user' | 'assistant';
 
 export interface ChatMessage {

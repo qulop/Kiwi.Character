@@ -19,6 +19,8 @@ import type {
   HistoryItem,
   ModelSettings,
   EndpointTestResult,
+  Persona,
+  NewPersonaInput,
 } from './types';
 
 /**
@@ -68,6 +70,25 @@ export function setFavorite(characterId: string, favorite: boolean): Promise<voi
 
 export function deleteCharacter(characterId: string): Promise<void> {
   return invoke('delete_character', { characterId });
+}
+
+// ---- Personas --------------------------------------------------------------
+
+function withPersonaAvatarUrl(p: Persona): Persona {
+  return p.avatar ? { ...p, avatar: assetUrl(p.avatar) } : p;
+}
+
+export async function listPersonas(): Promise<Persona[]> {
+  const ps = await invoke<Persona[]>('list_personas');
+  return ps.map(withPersonaAvatarUrl);
+}
+
+export async function createPersona(input: NewPersonaInput): Promise<Persona> {
+  return withPersonaAvatarUrl(await invoke<Persona>('create_persona', { input }));
+}
+
+export function deletePersona(personaId: string): Promise<void> {
+  return invoke('delete_persona', { personaId });
 }
 
 // ---- History / conversations --------------------------------------------
