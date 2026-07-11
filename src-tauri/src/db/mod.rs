@@ -68,6 +68,15 @@ impl Db {
 
 /// Decode a `data:` URL and write it under `avatars/`. Returns the relative path.
 /// Shared by any repository that stores an avatar image (characters, personas).
+///
+/// The filename embeds a fresh UUID so every save produces a genuinely new
+/// file/URL — re-uploading an avatar for the same character or persona used
+/// to reuse the exact `<id>.<ext>` path, so the webview kept showing its
+/// cached copy of the old image until a full reload. Callers that replace an
+/// existing avatar (see `characters::update`/`personas::update`) already
+/// delete the previous file, so this doesn't leak orphaned files. (A
+/// timestamp alone isn't quite enough — two saves within the same
+/// millisecond would still collide.)
 pub(crate) fn save_avatar(dir: &Path, id: &str, data_url: &str) -> Result<String, String> {
     use base64::{engine::general_purpose::STANDARD, Engine};
 
@@ -82,7 +91,7 @@ pub(crate) fn save_avatar(dir: &Path, id: &str, data_url: &str) -> Result<String
         "png"
     };
     let bytes = STANDARD.decode(b64.trim()).map_err(|e| e.to_string())?;
-    let file = format!("{id}.{ext}");
+    let file = format!("{id}-{}.{ext}", crate::state::new_id());
     std::fs::write(dir.join(&file), bytes).map_err(|e| e.to_string())?;
     Ok(format!("avatars/{file}"))
 }
@@ -133,4 +142,29 @@ fn add_column_if_missing(
         .map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const TINY_PNG_DATA_URL: &str =
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+    #[test]
+    fn save_avatar_never_collides_across_calls() {
+        let dir = std::env::temp_dir().join(format!("kiwi-avatar-test-{}", crate::state::new_id()));
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let path1 = save_avatar(&dir, "char1", TINY_PNG_DATA_URL).unwrap();
+        // A second save for the SAME id must produce a different file — this is
+        // exactly the bug: identical filenames meant the webview kept showing
+        // its cached copy of the old image after an avatar edit.
+        let path2 = save_avatar(&dir, "char1", TINY_PNG_DATA_URL).unwrap();
+        assert_ne!(path1, path2);
+        assert!(dir.join(path1.strip_prefix("avatars/").unwrap()).exists());
+        assert!(dir.join(path2.strip_prefix("avatars/").unwrap()).exists());
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
 }
