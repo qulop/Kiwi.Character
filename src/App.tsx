@@ -299,6 +299,7 @@ export default function App() {
           onActivity={onChatActivity}
           onOpenPersonas={() => openModal('personas')}
           activePersona={activePersona}
+          onEditActivePersona={() => activePersona && openPersonaInfo(activePersona)}
           onRemoveActivePersona={clearActivePersona}
         />
       )}

@@ -29,6 +29,7 @@ interface ChatPageProps {
   onOpenPersonas: () => void;
   /** The persona currently selected for this chat, if any. */
   activePersona: Persona | null;
+  onEditActivePersona: () => void;
   onRemoveActivePersona: () => void;
 }
 
@@ -42,6 +43,7 @@ export default function ChatPage({
   onActivity,
   onOpenPersonas,
   activePersona,
+  onEditActivePersona,
   onRemoveActivePersona,
 }: ChatPageProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -360,6 +362,9 @@ export default function ChatPage({
           <div className="kc-current-persona-card">
             <Avatar character={activePersona} className="kc-persona-avatar" />
             <span className="kc-persona-name">{activePersona.name}</span>
+            <button className="kc-persona-edit" aria-label="Edit active persona" onClick={onEditActivePersona}>
+              <PenIcon />
+            </button>
             <button className="kc-persona-remove" aria-label="Remove active persona" onClick={onRemoveActivePersona}>
               <MinusIcon />
             </button>
