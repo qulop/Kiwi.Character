@@ -14,6 +14,20 @@ use state::AppState;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            // Writes to stdout (visible in `tauri dev`) and to a rotating file
+            // under the OS log dir (e.g. %APPDATA%\com.kiwi.character\logs on
+            // Windows) — see `agent-docs`/README for the exact path per OS.
+            tauri_plugin_log::Builder::default()
+                .level(log::LevelFilter::Info)
+                .targets([
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+                        file_name: None,
+                    }),
+                ])
+                .build(),
+        )
         .setup(|app| {
             // Open the DB under the OS app-data dir (e.g. %APPDATA%\com.kiwi.character).
             let data_dir = app.path().app_data_dir()?;
@@ -21,6 +35,7 @@ pub fn run() {
             let avatars_dir = data_dir.join("avatars");
             let db = db::Db::open(&db_path, avatars_dir)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            log::info!("Kiwi.Character starting; database at {}", db_path.display());
             app.manage(AppState { db: Mutex::new(db) });
             Ok(())
         })
