@@ -49,6 +49,35 @@ pub struct NewCharacterInput {
     pub avatar: Option<String>,
 }
 
+/// A user persona — who the user is presenting as in a chat.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Persona {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    /// Avatar image (data URL, file path, or asset URL).
+    #[serde(default)]
+    pub avatar: Option<String>,
+    /// Reserved for a future "default persona" feature — always false for now.
+    #[serde(default)]
+    pub is_default: bool,
+    #[serde(default)]
+    pub created_at: i64,
+}
+
+/// Payload for creating a new persona (no id yet).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewPersonaInput {
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub avatar: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatMessage {

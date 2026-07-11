@@ -80,7 +80,7 @@ pub fn insert(
 
     // Persist the avatar file if a data URL was provided.
     let avatar_path = match input.avatar.as_deref() {
-        Some(data) if !data.is_empty() => Some(save_avatar(avatars_dir, &id, data)?),
+        Some(data) if !data.is_empty() => Some(super::save_avatar(avatars_dir, &id, data)?),
         _ => None,
     };
 
@@ -130,8 +130,7 @@ pub fn insert(
 pub fn delete(conn: &Connection, avatars_dir: &Path, id: &str) -> Result<(), String> {
     if let Ok(Some(c)) = get(conn, id) {
         if let Some(rel) = c.avatar {
-            let file = rel.strip_prefix("avatars/").unwrap_or(&rel);
-            let _ = std::fs::remove_file(avatars_dir.join(file));
+            super::remove_avatar_file(avatars_dir, &rel);
         }
     }
     conn.execute("DELETE FROM characters WHERE id = ?1", params![id])
@@ -167,7 +166,7 @@ pub fn update(
 
     // Only replace the avatar when a freshly picked image (data URL) is sent.
     let new_avatar = match input.avatar.as_deref() {
-        Some(a) if a.starts_with("data:") => Some(save_avatar(avatars_dir, id, a)?),
+        Some(a) if a.starts_with("data:") => Some(super::save_avatar(avatars_dir, id, a)?),
         _ => None,
     };
 
@@ -176,8 +175,7 @@ pub fn update(
         if let Ok(Some(prev)) = get(conn, id) {
             if let Some(rel) = prev.avatar {
                 if rel.as_str() != path.as_str() {
-                    let file = rel.strip_prefix("avatars/").unwrap_or(&rel);
-                    let _ = std::fs::remove_file(avatars_dir.join(file));
+                    super::remove_avatar_file(avatars_dir, &rel);
                 }
             }
         }
@@ -211,26 +209,6 @@ fn map_unique(name: &str) -> impl Fn(rusqlite::Error) -> String + '_ {
             msg
         }
     }
-}
-
-/// Decode a `data:` URL and write it under `avatars/`. Returns the relative path.
-fn save_avatar(dir: &Path, id: &str, data_url: &str) -> Result<String, String> {
-    use base64::{engine::general_purpose::STANDARD, Engine};
-
-    let (meta, b64) = data_url
-        .split_once(',')
-        .ok_or("avatar is not a data URL")?;
-    let ext = if meta.contains("jpeg") || meta.contains("jpg") {
-        "jpg"
-    } else if meta.contains("webp") {
-        "webp"
-    } else {
-        "png"
-    };
-    let bytes = STANDARD.decode(b64.trim()).map_err(|e| e.to_string())?;
-    let file = format!("{id}.{ext}");
-    std::fs::write(dir.join(&file), bytes).map_err(|e| e.to_string())?;
-    Ok(format!("avatars/{file}"))
 }
 
 /// First-run sample characters (stable ids so `conv-<id>` lines up).

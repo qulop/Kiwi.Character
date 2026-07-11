@@ -11,6 +11,7 @@ use rusqlite::Connection;
 pub mod characters;
 pub mod conversations;
 pub mod messages;
+pub mod personas;
 pub mod settings;
 
 const SCHEMA: &str = include_str!("schema.sql");
@@ -63,6 +64,33 @@ impl Db {
         }
         Ok(())
     }
+}
+
+/// Decode a `data:` URL and write it under `avatars/`. Returns the relative path.
+/// Shared by any repository that stores an avatar image (characters, personas).
+pub(crate) fn save_avatar(dir: &Path, id: &str, data_url: &str) -> Result<String, String> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    let (meta, b64) = data_url
+        .split_once(',')
+        .ok_or("avatar is not a data URL")?;
+    let ext = if meta.contains("jpeg") || meta.contains("jpg") {
+        "jpg"
+    } else if meta.contains("webp") {
+        "webp"
+    } else {
+        "png"
+    };
+    let bytes = STANDARD.decode(b64.trim()).map_err(|e| e.to_string())?;
+    let file = format!("{id}.{ext}");
+    std::fs::write(dir.join(&file), bytes).map_err(|e| e.to_string())?;
+    Ok(format!("avatars/{file}"))
+}
+
+/// Best-effort delete of a stored avatar file, given its `avatars/<file>` relative path.
+pub(crate) fn remove_avatar_file(dir: &Path, rel: &str) {
+    let file = rel.strip_prefix("avatars/").unwrap_or(rel);
+    let _ = std::fs::remove_file(dir.join(file));
 }
 
 /// Apply schema migrations for databases created before the current version.

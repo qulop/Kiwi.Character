@@ -55,6 +55,20 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS idx_messages_conversation
     ON messages (conversation_id, created_at);
 
+-- ---------- personas ----------
+CREATE TABLE IF NOT EXISTS personas (
+    id              TEXT    PRIMARY KEY,
+    name            TEXT    NOT NULL,
+    description     TEXT    NOT NULL DEFAULT '',
+    avatar_path     TEXT,                       -- NULL when no avatar; else relative path under avatars/
+    is_default      INTEGER NOT NULL DEFAULT 0, -- 0/1 — reserved for a future "default persona" feature
+    created_at      INTEGER NOT NULL,           -- ms epoch
+    updated_at      INTEGER NOT NULL            -- ms epoch
+);
+
+CREATE INDEX IF NOT EXISTS idx_personas_created_at
+    ON personas (created_at);
+
 -- ---------- settings (single row, id is always 1) ----------
 CREATE TABLE IF NOT EXISTS settings (
     id              INTEGER PRIMARY KEY CHECK (id = 1),

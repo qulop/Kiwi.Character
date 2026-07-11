@@ -12,6 +12,7 @@ use tauri::{AppHandle, Emitter, State};
 use crate::db;
 use crate::models::{
     Character, ChatMessage, EndpointTestResult, HistoryItem, ModelSettings, NewCharacterInput,
+    NewPersonaInput, Persona,
 };
 use crate::openai::{self, ChatReqMsg};
 use crate::state::AppState;
@@ -87,6 +88,35 @@ pub fn set_favorite(
 pub fn delete_character(character_id: String, state: State<'_, AppState>) -> Result<(), String> {
     let db = state.db.lock().unwrap();
     db::characters::delete(&db.conn, &db.avatars_dir, &character_id)
+}
+
+// ---- Personas --------------------------------------------------------------
+
+#[tauri::command]
+pub fn list_personas(state: State<'_, AppState>) -> Result<Vec<Persona>, String> {
+    let db = state.db.lock().unwrap();
+    let mut personas = db::personas::list(&db.conn)?;
+    for p in &mut personas {
+        p.avatar = absolute_avatar(&db.avatars_dir, p.avatar.take());
+    }
+    Ok(personas)
+}
+
+#[tauri::command]
+pub fn create_persona(
+    input: NewPersonaInput,
+    state: State<'_, AppState>,
+) -> Result<Persona, String> {
+    let db = state.db.lock().unwrap();
+    let mut p = db::personas::insert(&db.conn, &db.avatars_dir, input)?;
+    p.avatar = absolute_avatar(&db.avatars_dir, p.avatar.take());
+    Ok(p)
+}
+
+#[tauri::command]
+pub fn delete_persona(persona_id: String, state: State<'_, AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::personas::delete(&db.conn, &db.avatars_dir, &persona_id)
 }
 
 // ---- History / conversations --------------------------------------------
