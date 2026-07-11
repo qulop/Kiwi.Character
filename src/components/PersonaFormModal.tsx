@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import type { NewPersonaInput } from '../types';
 import { PersonaGlyph, UploadGlyph, BackIcon } from './icons';
+import AvatarCropModal from './AvatarCropModal';
 
 interface PersonaFormModalProps {
   title: string;
@@ -28,17 +29,21 @@ export default function PersonaFormModal({
   const [form, setForm] = useState<NewPersonaInput>(initial);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof NewPersonaInput>(k: K, v: NewPersonaInput[K]) =>
     setForm((p) => ({ ...p, [k]: v }));
 
+  // Picking a file opens the crop modal first; the avatar is only set once
+  // the user applies a crop, not on pick.
   const onPickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => set('avatar', String(reader.result));
+    reader.onload = () => setPendingImage(String(reader.result));
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const canSubmit = form.name.trim().length > 0 && !busy;
@@ -61,6 +66,7 @@ export default function PersonaFormModal({
   };
 
   return (
+    <>
     <div className="kc-modal kc-modal--new" onClick={(e) => e.stopPropagation()}>
       <div className="kc-modal-head">
         <PersonaGlyph />
@@ -105,5 +111,13 @@ export default function PersonaFormModal({
         </button>
       </div>
     </div>
+    {pendingImage && (
+      <AvatarCropModal
+        src={pendingImage}
+        onCancel={() => setPendingImage(null)}
+        onApply={(cropped) => { set('avatar', cropped); setPendingImage(null); }}
+      />
+    )}
+    </>
   );
 }

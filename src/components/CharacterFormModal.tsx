@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import type { NewCharacterInput } from '../types';
 import * as api from '../api';
 import { UploadGlyph } from './icons';
+import AvatarCropModal from './AvatarCropModal';
 
 interface CharacterFormModalProps {
   title: string;
@@ -33,6 +34,7 @@ export default function CharacterFormModal({
   const [error, setError] = useState<string | null>(null);
   const [nameTaken, setNameTaken] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof NewCharacterInput>(k: K, v: NewCharacterInput[K]) =>
@@ -55,12 +57,15 @@ export default function CharacterFormModal({
     }
   };
 
+  // Picking a file opens the crop modal first; the avatar is only set once
+  // the user applies a crop, not on pick.
   const onPickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => set('avatar', String(reader.result));
+    reader.onload = () => setPendingImage(String(reader.result));
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const canSubmit = form.name.trim().length > 0 && !nameTaken && !busy;
@@ -83,6 +88,7 @@ export default function CharacterFormModal({
   };
 
   return (
+    <>
     <div className="kc-modal kc-modal--new" onClick={(e) => e.stopPropagation()}>
       <div className="kc-modal-head">
         {icon}
@@ -140,5 +146,13 @@ export default function CharacterFormModal({
         </button>
       </div>
     </div>
+    {pendingImage && (
+      <AvatarCropModal
+        src={pendingImage}
+        onCancel={() => setPendingImage(null)}
+        onApply={(cropped) => { set('avatar', cropped); setPendingImage(null); }}
+      />
+    )}
+    </>
   );
 }

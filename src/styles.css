@@ -962,3 +962,85 @@ input::placeholder, textarea::placeholder { color: #6f757a; }
 .kc-avatar-upload:hover { border-color: var(--acc); }
 .kc-avatar-upload img { width: 100%; height: 100%; object-fit: cover; }
 .kc-upload-hint { font-size: 14px; color: var(--muted); }
+
+/* ---------- Avatar cropper (Discord-style) ---------- */
+.kc-crop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.kc-crop-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(360px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--line2);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+.kc-crop-head { display: flex; align-items: center; padding: 16px 18px; }
+.kc-crop-title { font-family: 'Gaegu', cursive; font-weight: 700; font-size: 20px; }
+.kc-crop-close {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid var(--line2);
+  color: var(--dim);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.kc-crop-close:hover { border-color: var(--ink); color: var(--ink); }
+.kc-crop-viewport {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #0b0c0e;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.kc-crop-viewport:active { cursor: grabbing; }
+.kc-crop-img { position: absolute; max-width: none; pointer-events: none; }
+.kc-crop-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.kc-crop-zoom-row { display: flex; align-items: center; gap: 12px; padding: 16px 22px 6px; }
+.kc-crop-zoom-icon { flex: 0 0 auto; color: var(--muted); line-height: 1; }
+.kc-crop-zoom-icon--sm { font-size: 11px; }
+.kc-crop-zoom-icon--lg { font-size: 18px; }
+.kc-crop-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px 20px;
+}
+.kc-crop-cancel {
+  padding: 12px 22px;
+  background: transparent;
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-hand-sm);
+  color: var(--dim);
+  font-family: 'Patrick Hand', cursive;
+  font-size: 17px;
+  cursor: pointer;
+}
+.kc-crop-cancel:hover { border-color: var(--ink); color: var(--ink); }
+.kc-crop-foot .kc-primary-btn { margin-left: 0; }
