@@ -65,12 +65,44 @@ export interface ChatMessage {
 export interface HistoryItem {
   /** Conversation id. */
   id: string;
-  characterId: string;
+  characterId?: string;
   name: string;
   /** Character avatar (asset URL) or null. */
   avatar?: string | null;
   /** ms epoch of newest activity — used to group history by time. */
   lastMessageAt?: number;
+  /** True for a group room — rendered with a member-avatar collage. */
+  isGroup?: boolean;
+  /** Up to 4 member avatars, used for the collage when a group has no custom avatar. */
+  memberAvatars?: (string | null | undefined)[];
+}
+
+/** A minimal character summary for a group's member list. */
+export interface GroupMemberBrief {
+  id: string;
+  name: string;
+  avatar?: string | null;
+}
+
+/** A group room — multiple characters (+ the user) in one chat. */
+export interface Group {
+  id: string;
+  name: string;
+  topic: string;
+  background: string;
+  /** Optional custom avatar; `null`/absent means use a member-avatar collage. */
+  avatar?: string | null;
+  members: GroupMemberBrief[];
+  createdAt?: number;
+}
+
+/** Payload for creating a new group (no id yet). */
+export interface NewGroupInput {
+  name: string;
+  topic: string;
+  background: string;
+  avatar?: string | null;
+  memberIds: string[];
 }
 
 export interface ModelSettings {

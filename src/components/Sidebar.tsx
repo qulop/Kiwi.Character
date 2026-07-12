@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { HistoryItem } from '../types';
 import Avatar from './Avatar';
+import GroupAvatar from './GroupAvatar';
 import { SearchIcon, TrashIcon, NewCharIcon, GroupIcon } from './icons';
 
 interface SidebarProps {
@@ -10,6 +11,7 @@ interface SidebarProps {
   onSearch: (value: string) => void;
   onBrand: () => void;
   onCreateCharacter: () => void;
+  onCreateGroup: () => void;
   onSettings: () => void;
   onSelect: (item: HistoryItem) => void;
   onDeleteChat: (item: HistoryItem) => void;
@@ -51,6 +53,7 @@ export default function Sidebar({
   onSearch,
   onBrand,
   onCreateCharacter,
+  onCreateGroup,
   onSettings,
   onSelect,
   onDeleteChat,
@@ -101,30 +104,38 @@ export default function Sidebar({
       onClick={() => onSelect(h)}
       onKeyDown={(e) => { if (e.key === 'Enter') onSelect(h); }}
     >
-      <Avatar character={{ name: h.name, avatar: h.avatar }} className="kc-hist-avatar" />
+      {h.isGroup ? (
+        <GroupAvatar avatar={h.avatar} memberAvatars={h.memberAvatars} className="kc-hist-avatar" />
+      ) : (
+        <Avatar character={{ name: h.name, avatar: h.avatar }} className="kc-hist-avatar" />
+      )}
       <span className="kc-hist-name">{h.name}</span>
-      <button
-        className="kc-hist-more"
-        aria-label="Chat actions"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (menuFor === h.id) { setMenuFor(null); return; }
-          const rect = e.currentTarget.getBoundingClientRect();
-          setMenuUp(window.innerHeight - rect.bottom < 70);
-          setMenuFor(h.id);
-        }}
-      >
-        ⋯
-      </button>
-      {menuFor === h.id && (
-        <div
-          className={'kc-hist-menu' + (menuUp ? ' kc-hist-menu--up' : '')}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button className="danger" onClick={() => { onDeleteChat(h); setMenuFor(null); }}>
-            <TrashIcon /> <span>Delete chat</span>
+      {!h.isGroup && (
+        <>
+          <button
+            className="kc-hist-more"
+            aria-label="Chat actions"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (menuFor === h.id) { setMenuFor(null); return; }
+              const rect = e.currentTarget.getBoundingClientRect();
+              setMenuUp(window.innerHeight - rect.bottom < 70);
+              setMenuFor(h.id);
+            }}
+          >
+            ⋯
           </button>
-        </div>
+          {menuFor === h.id && (
+            <div
+              className={'kc-hist-menu' + (menuUp ? ' kc-hist-menu--up' : '')}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button className="danger" onClick={() => { onDeleteChat(h); setMenuFor(null); }}>
+                <TrashIcon /> <span>Delete chat</span>
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -148,7 +159,7 @@ export default function Sidebar({
             <button onClick={() => { setCreateOpen(false); onCreateCharacter(); }}>
               <NewCharIcon /> <span>Character</span>
             </button>
-            <button className="kc-create-menu-disabled" disabled aria-disabled="true">
+            <button onClick={() => { setCreateOpen(false); onCreateGroup(); }}>
               <GroupIcon /> <span>Group</span>
             </button>
           </div>

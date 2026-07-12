@@ -6,6 +6,8 @@ import type {
   NewCharacterInput,
   Persona,
   NewPersonaInput,
+  Group,
+  NewGroupInput,
 } from './types';
 import { DEFAULT_SETTINGS } from './types';
 import * as api from './api';
@@ -16,10 +18,18 @@ import SettingsModal from './components/SettingsModal';
 import CharacterFormModal from './components/CharacterFormModal';
 import PersonasModal from './components/PersonasModal';
 import PersonaFormModal from './components/PersonaFormModal';
+import GroupFormModal from './components/GroupFormModal';
 import { NewCharIcon, InfoIcon } from './components/icons';
 
 type Page = 'main' | 'chat';
-type ModalKind = 'settings' | 'new' | 'info' | 'personas' | 'new-persona' | 'persona-info';
+type ModalKind =
+  | 'settings'
+  | 'new'
+  | 'info'
+  | 'personas'
+  | 'new-persona'
+  | 'persona-info'
+  | 'new-group';
 
 const EMPTY_INPUT: NewCharacterInput = {
   name: '', info: '', appearance: '', description: '', initialMessage: '', avatar: null,
@@ -66,6 +76,7 @@ export default function App() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [settings, setSettings] = useState<ModelSettings>(DEFAULT_SETTINGS);
   const [endpointStatus, setEndpointStatus] = useState<{
     online: boolean;
@@ -84,6 +95,7 @@ export default function App() {
     api.listCharacters().then(setCharacters).catch(console.error);
     api.listHistory().then(setHistory).catch(console.error);
     api.listPersonas().then(setPersonas).catch(console.error);
+    api.listGroups().then(setGroups).catch(console.error);
     api.getSettings().then(setSettings).catch(() => { /* keep defaults */ });
   }, []);
 
@@ -194,10 +206,19 @@ export default function App() {
   };
 
   const openHistory = (h: HistoryItem) => {
+    // Group chat isn't implemented yet — a group row is inert until that lands.
+    if (h.isGroup) return;
     const c = characters.find((x) => x.id === h.characterId);
     if (c) setActiveCharacter(c);
     setConversationId(h.id);
     setPage('chat');
+  };
+
+  const createGroup = async (input: NewGroupInput) => {
+    const created = await api.createGroup(input);
+    setGroups((gs) => [created, ...gs]);
+    // Stay put — just close the pop-up and let it show up in the chat list.
+    closeModals();
   };
 
   const createCharacter = async (input: NewCharacterInput) => {
@@ -273,14 +294,29 @@ export default function App() {
     }
   };
 
+  // Groups have no conversation/chat yet — surface them in the same sidebar
+  // list as inert entries, sorted in with character chats by recency.
+  const combinedHistory: HistoryItem[] = [
+    ...history,
+    ...groups.map((g): HistoryItem => ({
+      id: 'group-' + g.id,
+      name: g.name,
+      avatar: g.avatar ?? null,
+      lastMessageAt: g.createdAt ?? 0,
+      isGroup: true,
+      memberAvatars: g.members.slice(0, 4).map((m) => m.avatar ?? null),
+    })),
+  ].sort((a, b) => (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0));
+
   const sidebar = (
     <Sidebar
-      history={history}
+      history={combinedHistory}
       activeId={page === 'chat' ? conversationId : null}
       search={search}
       onSearch={setSearch}
       onBrand={() => setPage('main')}
       onCreateCharacter={() => openModal('new')}
+      onCreateGroup={() => openModal('new-group')}
       onSettings={() => openModal('settings')}
       onSelect={openHistory}
       onDeleteChat={deleteChat}
@@ -381,6 +417,9 @@ export default function App() {
               onBack={modalStack.length > 1 ? backModal : undefined}
               onSubmit={updatePersona}
             />
+          )}
+          {modal === 'new-group' && (
+            <GroupFormModal characters={characters} onClose={closeModals} onSubmit={createGroup} />
           )}
         </div>
       )}

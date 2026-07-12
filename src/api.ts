@@ -21,6 +21,8 @@ import type {
   EndpointTestResult,
   Persona,
   NewPersonaInput,
+  Group,
+  NewGroupInput,
 } from './types';
 
 /**
@@ -104,6 +106,25 @@ export async function getActivePersona(conversationId: string): Promise<Persona 
 /** Select (or, with `null`, clear) the persona for this chat. */
 export function setActivePersona(conversationId: string, personaId: string | null): Promise<void> {
   return invoke('set_active_persona', { conversationId, personaId });
+}
+
+// ---- Groups ------------------------------------------------------------
+
+function withGroupAvatarUrl(g: Group): Group {
+  return {
+    ...g,
+    avatar: g.avatar ? assetUrl(g.avatar) : g.avatar,
+    members: g.members.map((m) => (m.avatar ? { ...m, avatar: assetUrl(m.avatar) } : m)),
+  };
+}
+
+export async function listGroups(): Promise<Group[]> {
+  const gs = await invoke<Group[]>('list_groups');
+  return gs.map(withGroupAvatarUrl);
+}
+
+export async function createGroup(input: NewGroupInput): Promise<Group> {
+  return withGroupAvatarUrl(await invoke<Group>('create_group', { input }));
 }
 
 // ---- History / conversations --------------------------------------------
