@@ -53,6 +53,8 @@ pub fn run() {
             commands::delete_persona,
             commands::get_active_persona,
             commands::set_active_persona,
+            commands::list_groups,
+            commands::create_group,
             commands::list_history,
             commands::list_messages,
             commands::send_message,

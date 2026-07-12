@@ -11,8 +11,8 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db;
 use crate::models::{
-    Character, ChatMessage, EndpointTestResult, HistoryItem, ModelSettings, NewCharacterInput,
-    NewPersonaInput, Persona,
+    Character, ChatMessage, EndpointTestResult, Group, HistoryItem, ModelSettings,
+    NewCharacterInput, NewGroupInput, NewPersonaInput, Persona,
 };
 use crate::openai::{self, ChatReqMsg};
 use crate::state::AppState;
@@ -170,6 +170,39 @@ pub fn set_active_persona(
         "Set active persona for conversation '{conversation_id}' to {persona_id:?}"
     );
     db::conversations::set_active_persona(&db.conn, &conversation_id, persona_id.as_deref())
+}
+
+// ---- Groups ----------------------------------------------------------------
+
+#[tauri::command]
+pub fn list_groups(state: State<'_, AppState>) -> Result<Vec<Group>, String> {
+    let db = state.db.lock().unwrap();
+    let mut groups = db::groups::list(&db.conn)?;
+    for g in &mut groups {
+        g.avatar = absolute_avatar(&db.avatars_dir, g.avatar.take());
+        for m in &mut g.members {
+            m.avatar = absolute_avatar(&db.avatars_dir, m.avatar.take());
+        }
+    }
+    Ok(groups)
+}
+
+#[tauri::command]
+pub fn create_group(input: NewGroupInput, state: State<'_, AppState>) -> Result<Group, String> {
+    let db = state.db.lock().unwrap();
+    let mut g = db::groups::insert(&db.conn, &db.avatars_dir, input)?;
+    log::info!(
+        target: "kiwi::groups",
+        "Created group '{}' (id={}) with {} member(s)",
+        g.name,
+        g.id,
+        g.members.len()
+    );
+    g.avatar = absolute_avatar(&db.avatars_dir, g.avatar.take());
+    for m in &mut g.members {
+        m.avatar = absolute_avatar(&db.avatars_dir, m.avatar.take());
+    }
+    Ok(g)
 }
 
 // ---- History / conversations --------------------------------------------

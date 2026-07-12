@@ -70,6 +70,35 @@ CREATE TABLE IF NOT EXISTS personas (
 CREATE INDEX IF NOT EXISTS idx_personas_created_at
     ON personas (created_at);
 
+-- ---------- groups ----------
+-- A group room (multiple characters + the user). Group chat itself isn't
+-- implemented yet — for now a group is created and shown in the sidebar list.
+CREATE TABLE IF NOT EXISTS groups (
+    id              TEXT    PRIMARY KEY,
+    name            TEXT    NOT NULL,
+    topic           TEXT    NOT NULL DEFAULT '',
+    background      TEXT    NOT NULL DEFAULT '',  -- "Background & Relationships"
+    avatar_path     TEXT,                         -- NULL = use a member-avatar collage
+    created_at      INTEGER NOT NULL,             -- ms epoch
+    updated_at      INTEGER NOT NULL              -- ms epoch
+);
+
+CREATE INDEX IF NOT EXISTS idx_groups_created_at
+    ON groups (created_at);
+
+-- ---------- group_members ----------
+CREATE TABLE IF NOT EXISTS group_members (
+    group_id        TEXT    NOT NULL
+                        REFERENCES groups(id) ON DELETE CASCADE,
+    character_id    TEXT    NOT NULL
+                        REFERENCES characters(id) ON DELETE CASCADE,
+    position        INTEGER NOT NULL,             -- add order; drives "first 4" for the collage
+    PRIMARY KEY (group_id, character_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_group_members_group
+    ON group_members (group_id, position);
+
 -- ---------- settings (single row, id is always 1) ----------
 CREATE TABLE IF NOT EXISTS settings (
     id              INTEGER PRIMARY KEY CHECK (id = 1),

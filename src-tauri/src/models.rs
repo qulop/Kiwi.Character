@@ -78,6 +78,55 @@ pub struct NewPersonaInput {
     pub avatar: Option<String>,
 }
 
+/// A minimal character summary for a group's member list — just enough to
+/// render an avatar + name without a second round trip.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupMemberBrief {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub avatar: Option<String>,
+}
+
+/// A group room — multiple characters (+ the user) in one chat. Group chat
+/// itself isn't implemented yet; for now a group is created and listed.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Group {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub topic: String,
+    #[serde(default)]
+    pub background: String,
+    /// Avatar image (data URL, file path, or asset URL). `None` means the UI
+    /// should render a collage of the first members' avatars instead.
+    #[serde(default)]
+    pub avatar: Option<String>,
+    /// All members, in the order they were added.
+    #[serde(default)]
+    pub members: Vec<GroupMemberBrief>,
+    #[serde(default)]
+    pub created_at: i64,
+}
+
+/// Payload for creating a new group (no id yet).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NewGroupInput {
+    pub name: String,
+    #[serde(default)]
+    pub topic: String,
+    #[serde(default)]
+    pub background: String,
+    #[serde(default)]
+    pub avatar: Option<String>,
+    /// Member character ids, in the order the user picked them. Must have
+    /// at least two.
+    pub member_ids: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatMessage {

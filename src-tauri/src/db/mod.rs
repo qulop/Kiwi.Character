@@ -10,6 +10,7 @@ use rusqlite::Connection;
 
 pub mod characters;
 pub mod conversations;
+pub mod groups;
 pub mod messages;
 pub mod personas;
 pub mod settings;
