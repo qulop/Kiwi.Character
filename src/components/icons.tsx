@@ -37,6 +37,15 @@ export const NewCharIcon = () => (
   </svg>
 );
 
+export const GroupIcon = () => (
+  <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+    <circle cx="8" cy="8" r="3" stroke="#e7e9ea" strokeWidth="1.5" />
+    <circle cx="16" cy="8" r="3" stroke="#e7e9ea" strokeWidth="1.5" />
+    <path d="M2 19.5c0-3 2.4-5 6-5s6 2 6 5" stroke="#e7e9ea" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M10.5 19.5c0-3 2.4-5 6-5s6 2 6 5" stroke="#e7e9ea" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
 export const UploadGlyph = () => (
   <svg width="42" height="42" viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="9.5" r="3.6" stroke="#868c91" strokeWidth="1.5" />

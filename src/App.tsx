@@ -280,7 +280,7 @@ export default function App() {
       search={search}
       onSearch={setSearch}
       onBrand={() => setPage('main')}
-      onCreate={() => openModal('new')}
+      onCreateCharacter={() => openModal('new')}
       onSettings={() => openModal('settings')}
       onSelect={openHistory}
       onDeleteChat={deleteChat}

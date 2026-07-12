@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { HistoryItem } from '../types';
 import Avatar from './Avatar';
-import { SearchIcon, TrashIcon } from './icons';
+import { SearchIcon, TrashIcon, NewCharIcon, GroupIcon } from './icons';
 
 interface SidebarProps {
   history: HistoryItem[];
@@ -9,7 +9,7 @@ interface SidebarProps {
   search: string;
   onSearch: (value: string) => void;
   onBrand: () => void;
-  onCreate: () => void;
+  onCreateCharacter: () => void;
   onSettings: () => void;
   onSelect: (item: HistoryItem) => void;
   onDeleteChat: (item: HistoryItem) => void;
@@ -50,13 +50,14 @@ export default function Sidebar({
   search,
   onSearch,
   onBrand,
-  onCreate,
+  onCreateCharacter,
   onSettings,
   onSelect,
   onDeleteChat,
 }: SidebarProps) {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [menuUp, setMenuUp] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   // Close an open history menu on any outside click / Escape.
   useEffect(() => {
@@ -69,6 +70,18 @@ export default function Sidebar({
       document.removeEventListener('keydown', close);
     };
   }, [menuFor]);
+
+  // Close the Create dropdown on any outside click / Escape.
+  useEffect(() => {
+    if (!createOpen) return;
+    const close = () => setCreateOpen(false);
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('click', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [createOpen]);
 
   const filtered = search.trim()
     ? history.filter((h) => h.name.toLowerCase().includes(search.trim().toLowerCase()))
@@ -123,9 +136,24 @@ export default function Sidebar({
         <span className="kc-brand-name">Kiwi.Character</span>
       </button>
 
-      <button className="kc-create-btn" onClick={onCreate}>
-        <span className="plus">+</span> Create
-      </button>
+      <div className="kc-create-wrap">
+        <button
+          className="kc-create-btn"
+          onClick={(e) => { e.stopPropagation(); setCreateOpen((o) => !o); }}
+        >
+          <span className="plus">+</span> Create
+        </button>
+        {createOpen && (
+          <div className="kc-create-menu" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => { setCreateOpen(false); onCreateCharacter(); }}>
+              <NewCharIcon /> <span>Character</span>
+            </button>
+            <button className="kc-create-menu-disabled" disabled aria-disabled="true">
+              <GroupIcon /> <span>Group</span>
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="kc-search">
         <SearchIcon />
