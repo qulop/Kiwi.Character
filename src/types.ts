@@ -115,6 +115,12 @@ export interface ModelSettings {
   systemPrompt: string;
 }
 
+/** Effective model-load configuration echoed by LM Studio's native API. */
+export interface ModelLoadResult {
+  /** Actual maximum context in tokens, if the server returned it. */
+  contextLength?: number;
+}
+
 export interface EndpointTestResult {
   ok: boolean;
   /** Models the endpoint reports as available. */

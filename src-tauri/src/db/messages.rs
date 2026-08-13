@@ -19,8 +19,9 @@ fn map_rows(
             })
         })
         .map_err(|e| e.to_string())?;
-    rows.collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(|e| e.to_string())
+    return rows
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| e.to_string());
 }
 
 /// Visible messages only (hidden technical messages excluded) — for the UI.
@@ -31,7 +32,7 @@ pub fn list(conn: &Connection, conversation_id: &str) -> Result<Vec<ChatMessage>
              WHERE conversation_id = ?1 AND hidden = 0 ORDER BY created_at ASC, rowid ASC",
         )
         .map_err(|e| e.to_string())?;
-    map_rows(&mut stmt, conversation_id)
+    return map_rows(&mut stmt, conversation_id);
 }
 
 /// All messages including hidden ones — for building the model prompt.
@@ -42,18 +43,18 @@ pub fn list_all(conn: &Connection, conversation_id: &str) -> Result<Vec<ChatMess
              WHERE conversation_id = ?1 ORDER BY created_at ASC, rowid ASC",
         )
         .map_err(|e| e.to_string())?;
-    map_rows(&mut stmt, conversation_id)
+    return map_rows(&mut stmt, conversation_id);
 }
 
 /// The role of the newest message (by insertion order), if any.
 pub fn last_role(conn: &Connection, conversation_id: &str) -> Result<Option<String>, String> {
-    conn.query_row(
+    return conn.query_row(
         "SELECT role FROM messages WHERE conversation_id = ?1 ORDER BY rowid DESC LIMIT 1",
         params![conversation_id],
         |r| r.get::<_, String>(0),
     )
     .optional()
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string());
 }
 
 /// Insert a message and bump the parent conversation's `last_message_at`.
@@ -82,7 +83,7 @@ pub fn insert(
         params![conversation_id, m.created_at],
     )
     .map_err(|e| e.to_string())?;
-    Ok(m)
+    return Ok(m);
 }
 
 /// Update a message's text in place.
@@ -92,7 +93,7 @@ pub fn update_content(conn: &Connection, message_id: &str, content: &str) -> Res
         params![message_id, content],
     )
     .map_err(|e| e.to_string())?;
-    Ok(())
+    return Ok(());
 }
 
 /// Delete a single message, then refresh the conversation's last_message_at.
@@ -102,7 +103,7 @@ pub fn delete(conn: &Connection, conversation_id: &str, message_id: &str) -> Res
         params![message_id, conversation_id],
     )
     .map_err(|e| e.to_string())?;
-    refresh_last_message_at(conn, conversation_id)
+    return refresh_last_message_at(conn, conversation_id);
 }
 
 /// Delete every message positioned AFTER `message_id` in the same conversation.
@@ -115,7 +116,7 @@ pub fn rewind(conn: &Connection, conversation_id: &str, message_id: &str) -> Res
         params![conversation_id, message_id],
     )
     .map_err(|e| e.to_string())?;
-    refresh_last_message_at(conn, conversation_id)
+    return refresh_last_message_at(conn, conversation_id);
 }
 
 /// Set last_message_at to the newest remaining message time (NULL if none).
@@ -127,5 +128,5 @@ fn refresh_last_message_at(conn: &Connection, conversation_id: &str) -> Result<(
         params![conversation_id],
     )
     .map_err(|e| e.to_string())?;
-    Ok(())
+    return Ok(());
 }

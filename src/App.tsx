@@ -360,7 +360,7 @@ export default function App() {
               initialLoaded={endpointStatus.loaded}
               onClose={closeModals}
               onTest={api.testEndpoint}
-              onLoad={async (s) => { setSettings(s); await api.loadModel(s); }}
+              onLoad={async (s) => { setSettings(s); return api.loadModel(s); }}
               onRefreshLoaded={api.loadedModels}
               onUnload={api.unloadModel}
               onSave={async (s) => { setSettings(s); await api.saveSettings(s); }}

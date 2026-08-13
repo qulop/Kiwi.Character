@@ -23,6 +23,7 @@ import type {
   NewPersonaInput,
   Group,
   NewGroupInput,
+  ModelLoadResult,
 } from './types';
 
 /**
@@ -191,7 +192,7 @@ export function unloadModel(model: string): Promise<void> {
   return invoke('unload_model', { model });
 }
 
-export function loadModel(settings: ModelSettings): Promise<void> {
+export function loadModel(settings: ModelSettings): Promise<ModelLoadResult> {
   return invoke('load_model', { settings });
 }
 

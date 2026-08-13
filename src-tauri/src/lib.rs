@@ -2,7 +2,9 @@ mod commands;
 mod db;
 mod models;
 mod openai;
+mod prompts;
 mod state;
+mod notifications;
 
 use std::sync::Mutex;
 
@@ -14,6 +16,7 @@ use state::AppState;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(
             // Writes to stdout (visible in `tauri dev`) and to a rotating file
             // under the OS log dir (e.g. %APPDATA%\com.kiwi.character\logs on

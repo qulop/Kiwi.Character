@@ -1,0 +1,6 @@
+  <opening_context>
+    The character has already said the following opening message. Treat it as
+    established conversation context when replying to the user's first message;
+    do not quote or mention this context block.
+    <character_message>{{message}}</character_message>
+  </opening_context>

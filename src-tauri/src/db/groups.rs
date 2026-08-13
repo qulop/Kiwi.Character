@@ -18,14 +18,14 @@ struct GroupBase {
 }
 
 fn row_to_group_base(r: &Row) -> rusqlite::Result<GroupBase> {
-    Ok(GroupBase {
+    return Ok(GroupBase {
         id: r.get("id")?,
         name: r.get("name")?,
         topic: r.get("topic")?,
         background: r.get("background")?,
         avatar: r.get::<_, Option<String>>("avatar_path")?,
         created_at: r.get("created_at")?,
-    })
+    });
 }
 
 /// A group's members, ordered by add position.
@@ -48,13 +48,14 @@ fn members_of(conn: &Connection, group_id: &str) -> Result<Vec<GroupMemberBrief>
             })
         })
         .map_err(|e| e.to_string())?;
-    rows.collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(|e| e.to_string())
+    return rows
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| e.to_string());
 }
 
 fn to_group(conn: &Connection, base: GroupBase) -> Result<Group, String> {
     let members = members_of(conn, &base.id)?;
-    Ok(Group {
+    return Ok(Group {
         id: base.id,
         name: base.name,
         topic: base.topic,
@@ -62,7 +63,7 @@ fn to_group(conn: &Connection, base: GroupBase) -> Result<Group, String> {
         avatar: base.avatar,
         members,
         created_at: base.created_at,
-    })
+    });
 }
 
 pub fn list(conn: &Connection) -> Result<Vec<Group>, String> {
@@ -77,7 +78,7 @@ pub fn list(conn: &Connection) -> Result<Vec<Group>, String> {
         .map_err(|e| e.to_string())?
         .collect::<rusqlite::Result<Vec<_>>>()
         .map_err(|e| e.to_string())?;
-    bases.into_iter().map(|b| to_group(conn, b)).collect()
+    return bases.into_iter().map(|b| to_group(conn, b)).collect();
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Group>, String> {
@@ -90,10 +91,10 @@ pub fn get(conn: &Connection, id: &str) -> Result<Option<Group>, String> {
         )
         .optional()
         .map_err(|e| e.to_string())?;
-    match base {
+    return match base {
         None => Ok(None),
         Some(b) => to_group(conn, b).map(Some),
-    }
+    };
 }
 
 /// Create a group with its members. Requires a non-empty name and at least
@@ -130,7 +131,7 @@ pub fn insert(conn: &Connection, avatars_dir: &Path, input: NewGroupInput) -> Re
         .map_err(|e| e.to_string())?;
     }
 
-    get(conn, &id)?.ok_or_else(|| format!("Group '{id}' not found after insert"))
+    return get(conn, &id)?.ok_or_else(|| format!("Group '{id}' not found after insert"));
 }
 
 #[cfg(test)]
@@ -144,7 +145,7 @@ mod tests {
         let db_path = dir.join("test.db");
         let avatars_dir = dir.join("avatars");
         let db = crate::db::Db::open(&db_path, avatars_dir).unwrap();
-        (db, dir)
+        return (db, dir);
     }
 
     fn make_character(conn: &Connection, name: &str) -> String {
@@ -161,7 +162,7 @@ mod tests {
             },
         )
         .unwrap();
-        c.id
+        return c.id;
     }
 
     #[test]

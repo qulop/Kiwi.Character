@@ -1,0 +1,4 @@
+  <user_persona>
+    <name>{{name}}</name>
+    <description>{{description}}</description>
+  </user_persona>

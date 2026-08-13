@@ -51,7 +51,7 @@ impl Db {
         let db = Db { conn, avatars_dir };
         settings::ensure_row(&db.conn)?;
         db.seed_if_empty()?;
-        Ok(db)
+        return Ok(db);
     }
 
     /// Populate a friendly set of sample characters on first run (empty DB).
@@ -63,7 +63,7 @@ impl Db {
         if count == 0 {
             characters::seed_samples(&self.conn)?;
         }
-        Ok(())
+        return Ok(());
     }
 }
 
@@ -94,7 +94,7 @@ pub(crate) fn save_avatar(dir: &Path, id: &str, data_url: &str) -> Result<String
     let bytes = STANDARD.decode(b64.trim()).map_err(|e| e.to_string())?;
     let file = format!("{id}-{}.{ext}", crate::state::new_id());
     std::fs::write(dir.join(&file), bytes).map_err(|e| e.to_string())?;
-    Ok(format!("avatars/{file}"))
+    return Ok(format!("avatars/{file}"));
 }
 
 /// Best-effort delete of a stored avatar file, given its `avatars/<file>` relative path.
@@ -116,7 +116,7 @@ fn migrate(conn: &Connection, from_version: i64) -> Result<(), String> {
     if from_version < 3 {
         add_column_if_missing(conn, "conversations", "active_persona_id", "TEXT")?;
     }
-    Ok(())
+    return Ok(());
 }
 
 /// `ALTER TABLE ... ADD COLUMN` only when the column isn't already present.
@@ -142,7 +142,7 @@ fn add_column_if_missing(
         )
         .map_err(|e| e.to_string())?;
     }
-    Ok(())
+    return Ok(());
 }
 
 #[cfg(test)]

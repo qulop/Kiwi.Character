@@ -17,11 +17,11 @@ pub fn ensure_row(conn: &Connection) -> Result<(), String> {
     if !has {
         save(conn, &ModelSettings::default())?;
     }
-    Ok(())
+    return Ok(());
 }
 
 pub fn get(conn: &Connection) -> Result<ModelSettings, String> {
-    conn.query_row(
+    return conn.query_row(
         "SELECT endpoint, model, context_length, gpu_offload, temperature, max_tokens, system_prompt
          FROM settings WHERE id = 1",
         [],
@@ -38,7 +38,7 @@ pub fn get(conn: &Connection) -> Result<ModelSettings, String> {
             })
         },
     )
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string());
 }
 
 pub fn save(conn: &Connection, s: &ModelSettings) -> Result<(), String> {
@@ -60,5 +60,5 @@ pub fn save(conn: &Connection, s: &ModelSettings) -> Result<(), String> {
         ],
     )
     .map_err(|e| e.to_string())?;
-    Ok(())
+    return Ok(());
 }

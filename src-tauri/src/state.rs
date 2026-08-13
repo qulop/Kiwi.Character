@@ -14,13 +14,13 @@ pub struct AppState {
 
 /// Current time in milliseconds since the Unix epoch.
 pub fn now_ms() -> i64 {
-    SystemTime::now()
+    return SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as i64)
-        .unwrap_or(0)
+        .unwrap_or(0);
 }
 
 /// A fresh random id.
 pub fn new_id() -> String {
-    uuid::Uuid::new_v4().to_string()
+    return uuid::Uuid::new_v4().to_string();
 }

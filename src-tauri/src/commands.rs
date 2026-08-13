@@ -11,11 +11,13 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db;
 use crate::models::{
-    Character, ChatMessage, EndpointTestResult, Group, HistoryItem, ModelSettings,
+    Character, ChatMessage, EndpointTestResult, Group, HistoryItem, ModelLoadResult, ModelSettings,
     NewCharacterInput, NewGroupInput, NewPersonaInput, Persona,
 };
 use crate::openai::{self, ChatReqMsg};
+use crate::prompts;
 use crate::state::AppState;
+use crate::notifications::{notify_user, NotificationKind};
 
 // ---- Characters ----------------------------------------------------------
 
@@ -26,7 +28,8 @@ pub fn list_characters(state: State<'_, AppState>) -> Result<Vec<Character>, Str
     for c in &mut chars {
         resolve_avatar(&db.avatars_dir, c);
     }
-    Ok(chars)
+
+    return Ok(chars);
 }
 
 #[tauri::command]
@@ -35,7 +38,7 @@ pub fn get_character(id: String, state: State<'_, AppState>) -> Result<Character
     let mut c =
         db::characters::get(&db.conn, &id)?.ok_or_else(|| format!("Character '{id}' not found"))?;
     resolve_avatar(&db.avatars_dir, &mut c);
-    Ok(c)
+    return Ok(c);
 }
 
 #[tauri::command]
@@ -47,7 +50,7 @@ pub fn create_character(
     let mut c = db::characters::insert(&db.conn, &db.avatars_dir, input)?;
     log::info!(target: "kiwi::characters", "Created character '{}' (id={})", c.name, c.id);
     resolve_avatar(&db.avatars_dir, &mut c);
-    Ok(c)
+    return Ok(c);
 }
 
 #[tauri::command]
@@ -60,7 +63,7 @@ pub fn update_character(
     let mut c = db::characters::update(&db.conn, &db.avatars_dir, &id, input)?;
     log::info!(target: "kiwi::characters", "Updated character '{}' (id={id})", c.name);
     resolve_avatar(&db.avatars_dir, &mut c);
-    Ok(c)
+    return Ok(c);
 }
 
 /// Live pre-check for the create/edit form: is this name free (case-insensitively)?
@@ -73,7 +76,7 @@ pub fn character_name_available(
 ) -> Result<bool, String> {
     let db = state.db.lock().unwrap();
     let exclude = exclude_id.as_deref().unwrap_or("");
-    Ok(!db::characters::name_exists(&db.conn, name.trim(), exclude)?)
+    return Ok(!db::characters::name_exists(&db.conn, name.trim(), exclude)?);
 }
 
 #[tauri::command]
@@ -83,7 +86,19 @@ pub fn set_favorite(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let db = state.db.lock().unwrap();
-    db::characters::set_favorite(&db.conn, &character_id, favorite)
+
+    return db::characters::set_favorite(&db.conn, &character_id, favorite);
+}
+
+#[tauri::command]
+pub fn set_visibility(
+    character_id: String,
+    visible: bool,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+
+    return db::characters::set_visibility(&db.conn, &character_id, visible);
 }
 
 #[tauri::command]
@@ -91,7 +106,7 @@ pub fn delete_character(character_id: String, state: State<'_, AppState>) -> Res
     let db = state.db.lock().unwrap();
     db::characters::delete(&db.conn, &db.avatars_dir, &character_id)?;
     log::info!(target: "kiwi::characters", "Deleted character id={character_id}");
-    Ok(())
+    return Ok(());
 }
 
 // ---- Personas --------------------------------------------------------------
@@ -103,7 +118,7 @@ pub fn list_personas(state: State<'_, AppState>) -> Result<Vec<Persona>, String>
     for p in &mut personas {
         p.avatar = absolute_avatar(&db.avatars_dir, p.avatar.take());
     }
-    Ok(personas)
+    return Ok(personas);
 }
 
 #[tauri::command]
@@ -115,7 +130,7 @@ pub fn create_persona(
     let mut p = db::personas::insert(&db.conn, &db.avatars_dir, input)?;
     log::info!(target: "kiwi::personas", "Created persona '{}' (id={})", p.name, p.id);
     p.avatar = absolute_avatar(&db.avatars_dir, p.avatar.take());
-    Ok(p)
+    return Ok(p);
 }
 
 #[tauri::command]
@@ -128,7 +143,7 @@ pub fn update_persona(
     let mut p = db::personas::update(&db.conn, &db.avatars_dir, &id, input)?;
     log::info!(target: "kiwi::personas", "Updated persona '{}' (id={id})", p.name);
     p.avatar = absolute_avatar(&db.avatars_dir, p.avatar.take());
-    Ok(p)
+    return Ok(p);
 }
 
 #[tauri::command]
@@ -136,7 +151,7 @@ pub fn delete_persona(persona_id: String, state: State<'_, AppState>) -> Result<
     let db = state.db.lock().unwrap();
     db::personas::delete(&db.conn, &db.avatars_dir, &persona_id)?;
     log::info!(target: "kiwi::personas", "Deleted persona id={persona_id}");
-    Ok(())
+    return Ok(());
 }
 
 /// The persona currently selected for this chat, if any (survives relaunch).
@@ -153,7 +168,7 @@ pub fn get_active_persona(
     if let Some(p) = &mut p {
         p.avatar = absolute_avatar(&db.avatars_dir, p.avatar.take());
     }
-    Ok(p)
+    return Ok(p);
 }
 
 /// Select (or, with `None`, clear) the persona for this chat.
@@ -169,7 +184,7 @@ pub fn set_active_persona(
         target: "kiwi::personas",
         "Set active persona for conversation '{conversation_id}' to {persona_id:?}"
     );
-    db::conversations::set_active_persona(&db.conn, &conversation_id, persona_id.as_deref())
+    return db::conversations::set_active_persona(&db.conn, &conversation_id, persona_id.as_deref());
 }
 
 // ---- Groups ----------------------------------------------------------------
@@ -184,7 +199,7 @@ pub fn list_groups(state: State<'_, AppState>) -> Result<Vec<Group>, String> {
             m.avatar = absolute_avatar(&db.avatars_dir, m.avatar.take());
         }
     }
-    Ok(groups)
+    return Ok(groups);
 }
 
 #[tauri::command]
@@ -202,7 +217,7 @@ pub fn create_group(input: NewGroupInput, state: State<'_, AppState>) -> Result<
     for m in &mut g.members {
         m.avatar = absolute_avatar(&db.avatars_dir, m.avatar.take());
     }
-    Ok(g)
+    return Ok(g);
 }
 
 // ---- History / conversations --------------------------------------------
@@ -237,7 +252,7 @@ pub fn list_history(state: State<'_, AppState>) -> Result<Vec<HistoryItem>, Stri
     for h in &mut items {
         h.avatar = absolute_avatar(&db.avatars_dir, h.avatar.take());
     }
-    Ok(items)
+    return Ok(items);
 }
 
 #[tauri::command]
@@ -251,7 +266,7 @@ pub fn list_messages(
     if db::conversations::ensure(&db.conn, &conversation_id).is_err() {
         return Ok(Vec::new());
     }
-    db::messages::list(&db.conn, &conversation_id)
+    return db::messages::list(&db.conn, &conversation_id);
 }
 
 #[tauri::command]
@@ -299,7 +314,7 @@ pub async fn send_message(
         let db = state.db.lock().unwrap();
         db::messages::insert(&db.conn, &conversation_id, "assistant", &reply_text, false)?
     };
-    Ok(reply)
+    return Ok(reply);
 }
 
 /// Streaming counterpart to `send_message`. Emits one `chat://token` event per
@@ -312,7 +327,7 @@ pub async fn stream_message(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     // 1. Persist the user message and snapshot context, then drop the lock.
-    let (settings, character, persona, history) = {
+    let (settings, mut character, persona, history) = {
         let db = state.db.lock().unwrap();
         db::conversations::ensure(&db.conn, &conversation_id)?;
         db::messages::insert(&db.conn, &conversation_id, "user", &content, false)?;
@@ -323,6 +338,7 @@ pub async fn stream_message(
         let persona = active_persona(&db.conn, &conversation_id)?;
         let history = db::messages::list_all(&db.conn, &conversation_id)?;
         let settings = db::settings::get(&db.conn)?;
+
         (settings, character, persona, history)
     };
 
@@ -337,7 +353,7 @@ pub async fn stream_message(
     })
     .await;
 
-    match result {
+    return match result {
         Ok(full) => {
             // 4a. Persist the assistant reply, then signal completion. Skip
             // storing an empty reply so it can't pollute future prompts.
@@ -354,9 +370,12 @@ pub async fn stream_message(
             {
                 let db = state.db.lock().unwrap();
                 db::messages::insert(&db.conn, &conversation_id, "assistant", &full, false)?;
+
+                resolve_avatar(&db.avatars_dir, &mut character); // Resolve avatar for notification
             }
             let _ = app.emit("chat://done", ());
-            Ok(())
+
+            return notify_user(app, NotificationKind::ChatDone(character, full));
         }
         Err(e) => {
             // 4b. Surface the real error to the UI.
@@ -364,7 +383,7 @@ pub async fn stream_message(
             let _ = app.emit("chat://error", e.clone());
             Err(e)
         }
-    }
+    };
 }
 
 /// The hidden instruction sent as a "user" turn to make the model continue its
@@ -383,7 +402,7 @@ pub async fn stream_continue(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let (settings, character, persona, history) = {
+    let (settings, mut character, persona, history) = {
         let db = state.db.lock().unwrap();
         db::conversations::ensure(&db.conn, &conversation_id)?;
 
@@ -409,7 +428,7 @@ pub async fn stream_continue(
     })
     .await;
 
-    match result {
+    return match result {
         Ok(full) => {
             if full.trim().is_empty() {
                 log::warn!(target: "kiwi::llm", "Empty continued reply for conversation '{conversation_id}'");
@@ -424,16 +443,19 @@ pub async fn stream_continue(
             {
                 let db = state.db.lock().unwrap();
                 db::messages::insert(&db.conn, &conversation_id, "assistant", &full, false)?;
+
+                resolve_avatar(&db.avatars_dir, &mut character); // Resolve avatar for notification
             }
             let _ = app.emit("chat://done", ());
-            Ok(())
+
+            return notify_user(app, NotificationKind::ChatDone(character, full));
         }
         Err(e) => {
             log::error!(target: "kiwi::llm", "stream_continue failed for '{conversation_id}': {e}");
             let _ = app.emit("chat://error", e.clone());
             Err(e)
         }
-    }
+    };
 }
 
 #[tauri::command]
@@ -443,7 +465,7 @@ pub fn update_message(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let db = state.db.lock().unwrap();
-    db::messages::update_content(&db.conn, &message_id, &content)
+    return db::messages::update_content(&db.conn, &message_id, &content);
 }
 
 #[tauri::command]
@@ -453,7 +475,7 @@ pub fn delete_message(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let db = state.db.lock().unwrap();
-    db::messages::delete(&db.conn, &conversation_id, &message_id)
+    return db::messages::delete(&db.conn, &conversation_id, &message_id);
 }
 
 /// Delete a whole conversation (chat history) but keep the character.
@@ -463,7 +485,7 @@ pub fn delete_conversation(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let db = state.db.lock().unwrap();
-    db::conversations::delete(&db.conn, &conversation_id)
+    return db::conversations::delete(&db.conn, &conversation_id);
 }
 
 /// Delete all messages positioned after `message_id` (rewind the thread to it).
@@ -474,7 +496,7 @@ pub fn rewind_to_message(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let db = state.db.lock().unwrap();
-    db::messages::rewind(&db.conn, &conversation_id, &message_id)
+    return db::messages::rewind(&db.conn, &conversation_id, &message_id);
 }
 
 // ---- Settings / model ----------------------------------------------------
@@ -482,18 +504,18 @@ pub fn rewind_to_message(
 #[tauri::command]
 pub fn get_settings(state: State<'_, AppState>) -> Result<ModelSettings, String> {
     let db = state.db.lock().unwrap();
-    db::settings::get(&db.conn)
+    return db::settings::get(&db.conn);
 }
 
 #[tauri::command]
 pub fn save_settings(settings: ModelSettings, state: State<'_, AppState>) -> Result<(), String> {
     let db = state.db.lock().unwrap();
-    db::settings::save(&db.conn, &settings)
+    return db::settings::save(&db.conn, &settings);
 }
 
 #[tauri::command]
 pub async fn test_endpoint(endpoint: String) -> EndpointTestResult {
-    match openai::list_models(&endpoint).await {
+    return match openai::list_models(&endpoint).await {
         Ok(models) => {
             log::info!(target: "kiwi::llm", "Endpoint '{endpoint}' ok, {} model(s)", models.len());
             EndpointTestResult { ok: true, models, error: None }
@@ -502,13 +524,13 @@ pub async fn test_endpoint(endpoint: String) -> EndpointTestResult {
             log::warn!(target: "kiwi::llm", "Endpoint '{endpoint}' test failed: {error}");
             EndpointTestResult { ok: false, models: Vec::new(), error: Some(error) }
         }
-    }
+    };
 }
 
 /// Models currently loaded on the server (LM Studio native API).
 #[tauri::command]
 pub async fn loaded_models(endpoint: String) -> Result<Vec<String>, String> {
-    openai::loaded_models(&endpoint).await
+    return openai::loaded_models(&endpoint).await;
 }
 
 /// Unload a model on the server via the `lms` CLI (LM Studio has no REST unload).
@@ -533,23 +555,40 @@ pub async fn unload_model(model: String) -> Result<(), String> {
         log::error!(target: "kiwi::llm", "Unload of '{model}' failed: {msg}");
         return Err(format!("lms unload failed: {msg}"));
     }
-    Ok(())
+    return Ok(());
 }
 
 #[tauri::command]
-pub async fn load_model(settings: ModelSettings, state: State<'_, AppState>) -> Result<(), String> {
+pub async fn load_model(
+    settings: ModelSettings,
+    state: State<'_, AppState>,
+) -> Result<ModelLoadResult, String> {
     // Persist the choice first (so it sticks even if loading is slow or fails),
     // then ask the server to actually load the model. Drop the lock before await.
     {
         let db = state.db.lock().unwrap();
         db::settings::save(&db.conn, &settings)?;
     }
-    log::info!(target: "kiwi::llm", "Loading model '{}' on '{}'", settings.model, settings.endpoint);
+    log::info!(
+        target: "kiwi::llm",
+        "Loading model '{}' on '{}' with {}k context",
+        settings.model,
+        settings.endpoint,
+        settings.context_length
+    );
     let result = openai::load_model(&settings).await;
+    if let Ok(load) = &result {
+        log::info!(
+            target: "kiwi::llm",
+            "LM Studio loaded '{}' with reported context {:?}",
+            settings.model,
+            load.context_length
+        );
+    }
     if let Err(e) = &result {
         log::error!(target: "kiwi::llm", "Loading '{}' failed: {e}", settings.model);
     }
-    result
+    return result;
 }
 
 // ---- Helpers (not commands) ----------------------------------------------
@@ -557,10 +596,10 @@ pub async fn load_model(settings: ModelSettings, state: State<'_, AppState>) -> 
 /// Rewrite a stored relative avatar path (`avatars/<file>`) to an absolute
 /// filesystem path the frontend turns into an asset URL via `convertFileSrc`.
 fn absolute_avatar(avatars_dir: &Path, rel: Option<String>) -> Option<String> {
-    rel.map(|r| {
+    return rel.map(|r| {
         let file = r.strip_prefix("avatars/").unwrap_or(&r).to_string();
         avatars_dir.join(file).to_string_lossy().into_owned()
-    })
+    });
 }
 
 fn resolve_avatar(avatars_dir: &Path, c: &mut Character) {
@@ -572,23 +611,39 @@ fn active_persona(
     conn: &rusqlite::Connection,
     conversation_id: &str,
 ) -> Result<Option<Persona>, String> {
-    match db::conversations::active_persona_id(conn, conversation_id)? {
+    return match db::conversations::active_persona_id(conn, conversation_id)? {
         Some(pid) => db::personas::get(conn, &pid),
         None => Ok(None),
-    }
+    };
 }
 
-/// Build the OpenAI `messages` array: a persona system prompt followed by the
-/// stored conversation thread.
+/// Build the OpenAI `messages` array: a structured roleplay system prompt
+/// followed by the stored conversation thread.
 fn build_request(
     character: &Character,
     persona: Option<&Persona>,
     settings: &ModelSettings,
     history: &[ChatMessage],
 ) -> Vec<ChatReqMsg> {
+    let first_user_index = history.iter().position(|m| m.role == "user");
+    let opening_message = first_user_index.and_then(|index| {
+        history[index + 1..]
+            .iter()
+            .all(|message| message.role != "user")
+            .then(|| {
+                history[..index]
+                    .iter()
+                    .find(|message| {
+                        message.role == "assistant" && !message.content.trim().is_empty()
+                    })
+                    .map(|message| message.content.as_str())
+            })
+            .flatten()
+    });
+
     let mut req_msgs = vec![ChatReqMsg {
         role: "system".into(),
-        content: build_system_prompt(character, persona, settings),
+        content: build_system_prompt(character, persona, settings, opening_message),
     }];
 
     // Most chat templates (e.g. Qwen3) require the first non-system message to
@@ -615,60 +670,60 @@ fn build_request(
             content: m.content.clone(),
         });
     }
-    req_msgs
+    return req_msgs;
 }
 
 /// Compose the system prompt that puts the model in character.
-fn build_system_prompt(c: &Character, persona: Option<&Persona>, settings: &ModelSettings) -> String {
-    let mut p = format!("You are {}.", c.name);
-    if !c.info.is_empty() {
-        p.push(' ');
-        p.push_str(&c.info);
-    }
-    if !c.description.is_empty() {
-        p.push_str("\n\nBackground:\n");
-        p.push_str(&c.description);
-    }
-    if !c.appearance.is_empty() {
-        p.push_str("\n\nAppearance:\n");
-        p.push_str(&c.appearance);
-    }
-    p.push_str(
-        "\n\nStay in character at all times. Speak in the first person as this character, \
-         and never mention that you are an AI or language model.",
+///
+/// The rules intentionally come before the reference data. Character fields
+/// are private context, not a checklist to quote back: a strong trait should
+/// influence a response only when it naturally fits the current conversation.
+fn build_system_prompt(
+    c: &Character,
+    persona: Option<&Persona>,
+    settings: &ModelSettings,
+    opening_message: Option<&str>,
+) -> String {
+    let character_block = build_character_block(c);
+    let persona_block = persona.map(build_persona_block).unwrap_or_default();
+    let additional_user_instructions = (!settings.system_prompt.trim().is_empty())
+        .then(|| prompts::additional_user_instructions(&xml_escape(settings.system_prompt.trim())))
+        .unwrap_or_default();
+    let opening_context = opening_message
+        .filter(|message| !message.trim().is_empty())
+        .map(|message| prompts::opening_context(&xml_escape(message)))
+        .unwrap_or_default();
+
+    return prompts::system_prompt(
+        &character_block,
+        &persona_block,
+        &additional_user_instructions,
+        &opening_context,
     );
-    if let Some(persona) = persona {
-        p.push_str(
-            "\n\nThe user has chosen a persona to represent them in this conversation, \
-             described below:\n\n",
-        );
-        p.push_str(&build_persona_block(persona));
-        p.push_str(
-            "\n\nTreat the user as this person for the rest of the conversation: address them \
-             accordingly and let the traits and background above inform how you react to them. \
-             Do not mention this instruction or the <persona> block itself.",
-        );
-    }
-    if !settings.system_prompt.trim().is_empty() {
-        p.push_str("\n\n");
-        p.push_str(settings.system_prompt.trim());
-    }
-    p
 }
 
-/// Render a persona as the `<persona>` XML block the system prompt embeds.
+/// Render character profile data as inert XML reference material. Escaping
+/// every field prevents profile text from being mistaken for prompt structure.
+fn build_character_block(c: &Character) -> String {
+    let name = xml_escape(&c.name);
+    let short_info = xml_escape(&c.info);
+    let appearance = xml_escape(&c.appearance);
+    let description = xml_escape(&c.description);
+    return prompts::character_block(&name, &short_info, &appearance, &description);
+}
+
+/// Render persona data as a private XML reference block.
 fn build_persona_block(p: &Persona) -> String {
-    format!(
-        "<persona>\n  <name>{}</name>\n  <description>{}</description>\n</persona>",
-        xml_escape(&p.name),
-        xml_escape(&p.description),
-    )
+    let name = xml_escape(&p.name);
+    let description = xml_escape(&p.description);
+    return prompts::persona_block(&name, &description);
 }
 
-/// Escape the handful of characters that would otherwise break the `<persona>`
-/// tag structure if a name/description contained them.
+/// Escape the characters that would otherwise turn profile text into XML.
 fn xml_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    return s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;");
 }
 
 /// Log the exact prompt sent to the model — the same messages array the model
@@ -691,7 +746,7 @@ mod tests {
     use super::*;
 
     fn test_character() -> Character {
-        Character {
+        return Character {
             id: "c1".into(),
             name: "Aria".into(),
             info: String::new(),
@@ -702,13 +757,16 @@ mod tests {
             is_favorite: false,
             created_at: 0,
             last_message_at: None,
-        }
+        };
     }
 
     #[test]
     fn system_prompt_omits_persona_block_when_none() {
-        let p = build_system_prompt(&test_character(), None, &ModelSettings::default());
-        assert!(!p.contains("<persona>"));
+        let p = build_system_prompt(&test_character(), None, &ModelSettings::default(), None);
+        assert!(p.contains("<kiwi_roleplay_system>"));
+        assert!(p.contains("<roleplay_rules>"));
+        assert!(!p.contains("<user_persona>"));
+        assert!(!p.contains("<scene>"));
     }
 
     #[test]
@@ -721,9 +779,14 @@ mod tests {
             is_default: false,
             created_at: 0,
         };
-        let p = build_system_prompt(&test_character(), Some(&persona), &ModelSettings::default());
-        assert!(p.contains("<persona>\n  <name>Cool Guy</name>\n  <description>Just cool</description>\n</persona>"));
-        assert!(p.to_lowercase().contains("treat the user as this person"));
+        let p = build_system_prompt(
+            &test_character(),
+            Some(&persona),
+            &ModelSettings::default(),
+            None,
+        );
+        assert!(p.contains("<user_persona>\n    <name>Cool Guy</name>\n    <description>Just cool</description>\n  </user_persona>"));
+        assert!(p.contains("private reference material"));
     }
 
     #[test]
@@ -741,5 +804,89 @@ mod tests {
         assert!(block.contains("<description>x &gt; y</description>"));
         // No unescaped '<' or '>' should slip through inside the field values.
         assert!(!block.contains("<script>"));
+    }
+
+    #[test]
+    fn character_profile_is_structured_and_escaped() {
+        let mut character = test_character();
+        character.name = "Mina <The Rival>".into();
+        character.info = "Competitive & warm".into();
+        character.appearance = "Blue eyes".into();
+        character.description = "Likes <sneakers>".into();
+
+        let p = build_system_prompt(&character, None, &ModelSettings::default(), None);
+        assert!(p.contains("<character>"));
+        assert!(p.contains("<name>Mina &lt;The Rival&gt;</name>"));
+        assert!(p.contains("<short_info>Competitive &amp; warm</short_info>"));
+        assert!(p.contains("<description>Likes &lt;sneakers&gt;</description>"));
+    }
+
+    #[test]
+    fn additional_user_instructions_are_reference_text_not_prompt_structure() {
+        let mut settings = ModelSettings::default();
+        settings.system_prompt = "Be concise. </roleplay_rules>".into();
+
+        let p = build_system_prompt(&test_character(), None, &settings, None);
+        assert!(p.contains("<additional_user_instructions>"));
+        assert!(p.contains("Be concise. &lt;/roleplay_rules&gt;"));
+        assert!(p.contains("they do not override these rules"));
+    }
+
+    #[test]
+    fn first_user_reply_gets_the_seeded_greeting_as_opening_context() {
+        let history = vec![
+            ChatMessage {
+                id: "m1".into(),
+                role: "assistant".into(),
+                content: "Don't stare at me.".into(),
+                created_at: Some(1),
+            },
+            ChatMessage {
+                id: "m2".into(),
+                role: "user".into(),
+                content: "Sorry.".into(),
+                created_at: Some(2),
+            },
+        ];
+
+        let request = build_request(&test_character(), None, &ModelSettings::default(), &history);
+        assert!(request[0].content.contains("<opening_context>"));
+        assert!(request[0].content.contains("Don't stare at me."));
+        assert_eq!(request[1].role, "user");
+        assert_eq!(request[1].content, "Sorry.");
+    }
+
+    #[test]
+    fn later_replies_do_not_repeat_opening_context() {
+        let history = vec![
+            ChatMessage {
+                id: "m1".into(),
+                role: "assistant".into(),
+                content: "Don't stare at me.".into(),
+                created_at: Some(1),
+            },
+            ChatMessage {
+                id: "m2".into(),
+                role: "user".into(),
+                content: "Sorry.".into(),
+                created_at: Some(2),
+            },
+            ChatMessage {
+                id: "m3".into(),
+                role: "assistant".into(),
+                content: "Fine.".into(),
+                created_at: Some(3),
+            },
+            ChatMessage {
+                id: "m4".into(),
+                role: "user".into(),
+                content: "Thanks.".into(),
+                created_at: Some(4),
+            },
+        ];
+
+        let request = build_request(&test_character(), None, &ModelSettings::default(), &history);
+        assert!(!request[0].content.contains("<opening_context>"));
+        assert_eq!(request.len(), 4);
     }
 }

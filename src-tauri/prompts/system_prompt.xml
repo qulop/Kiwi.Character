@@ -1,0 +1,14 @@
+<kiwi_roleplay_system>
+  <xml_interpretation>
+{{xml_interpretation}}
+  </xml_interpretation>
+
+  <roleplay_rules>
+{{roleplay_rules}}
+  </roleplay_rules>
+
+{{character_block}}
+{{persona_block}}
+{{additional_user_instructions}}
+{{opening_context}}
+</kiwi_roleplay_system>

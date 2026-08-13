@@ -47,28 +47,28 @@ pub fn ensure(conn: &Connection, conversation_id: &str) -> Result<(), String> {
     if !greeting.is_empty() {
         messages::insert(conn, conversation_id, "assistant", &greeting, false)?;
     }
-    Ok(())
+    return Ok(());
 }
 
 pub fn character_id_of(conn: &Connection, conversation_id: &str) -> Result<String, String> {
-    conn.query_row(
+    return conn.query_row(
         "SELECT character_id FROM conversations WHERE id = ?1",
         params![conversation_id],
         |r| r.get(0),
     )
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string());
 }
 
 /// The persona currently selected for this chat, if any.
 pub fn active_persona_id(conn: &Connection, conversation_id: &str) -> Result<Option<String>, String> {
-    conn.query_row(
+    return conn.query_row(
         "SELECT active_persona_id FROM conversations WHERE id = ?1",
         params![conversation_id],
         |r| r.get::<_, Option<String>>(0),
     )
     .optional()
     .map_err(|e| e.to_string())
-    .map(|opt| opt.flatten())
+    .map(|opt| opt.flatten());
 }
 
 /// Set (or clear, with `None`) the persona selected for this chat.
@@ -82,7 +82,7 @@ pub fn set_active_persona(
         params![conversation_id, persona_id],
     )
     .map_err(|e| e.to_string())?;
-    Ok(())
+    return Ok(());
 }
 
 /// Delete a conversation (and its messages, via cascade). The character stays;
@@ -93,5 +93,5 @@ pub fn delete(conn: &Connection, conversation_id: &str) -> Result<(), String> {
         params![conversation_id],
     )
     .map_err(|e| e.to_string())?;
-    Ok(())
+    return Ok(());
 }

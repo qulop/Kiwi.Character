@@ -167,10 +167,19 @@ pub struct ModelSettings {
     pub system_prompt: String,
 }
 
+/// Result of asking LM Studio to load a model through its native API.
+/// `context_length` is the effective token limit echoed back by LM Studio.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelLoadResult {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context_length: Option<i64>,
+}
+
 impl Default for ModelSettings {
     /// Mirrors `DEFAULT_SETTINGS` in `types.ts`.
     fn default() -> Self {
-        Self {
+        return Self {
             endpoint: "http://localhost:1234/v1".into(),
             model: "llama-3.1-8b-instruct".into(),
             context_length: 100,
@@ -178,7 +187,7 @@ impl Default for ModelSettings {
             temperature: 0.8,
             max_tokens: 2048,
             system_prompt: String::new(),
-        }
+        };
     }
 }
 

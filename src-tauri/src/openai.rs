@@ -10,7 +10,7 @@ use std::time::Duration;
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 
-use crate::models::ModelSettings;
+use crate::models::{ModelLoadResult, ModelSettings};
 
 /// `GET {endpoint}/models` — returns the ids the server advertises.
 pub async fn list_models(endpoint: &str) -> Result<Vec<String>, String> {
@@ -46,7 +46,7 @@ pub async fn list_models(endpoint: &str) -> Result<Vec<String>, String> {
         .await
         .map_err(|e| format!("Unexpected /models response: {e}"))?;
 
-    Ok(parsed.data.into_iter().map(|m| m.id).collect())
+    return Ok(parsed.data.into_iter().map(|m| m.id).collect());
 }
 
 /// The models currently **loaded** on the server, via LM Studio's native
@@ -90,26 +90,27 @@ pub async fn loaded_models(endpoint: &str) -> Result<Vec<String>, String> {
         .await
         .map_err(|e| format!("Unexpected /api/v0/models response: {e}"))?;
 
-    Ok(parsed
+    return Ok(parsed
         .data
         .into_iter()
         .filter(|m| m.state == "loaded" && (m.kind == "llm" || m.kind == "vlm"))
         .map(|m| m.id)
-        .collect())
+        .collect());
 }
 
-/// Ask the server to load `settings.model`. There is no standard OpenAI "load"
-/// endpoint, but LM Studio (with Just-In-Time loading, on by default) loads the
-/// requested model when it receives a chat request for it. We send a minimal
-/// 1-token request; when it returns successfully the model is loaded/resident.
-pub async fn load_model(settings: &ModelSettings) -> Result<(), String> {
-    let url = format!("{}/chat/completions", settings.endpoint.trim_end_matches('/'));
-    let body = serde_json::json!({
-        "model": settings.model,
-        "messages": [{ "role": "user", "content": "Hi" }],
-        "max_tokens": 1,
-        "stream": false,
-    });
+/// Ask LM Studio's native API to load `settings.model` with the requested
+/// context window. This cannot use the OpenAI-compatible chat endpoint: that
+/// endpoint only triggers JIT loading with LM Studio's default load settings.
+pub async fn load_model(settings: &ModelSettings) -> Result<ModelLoadResult, String> {
+    let url = lmstudio_load_url(&settings.endpoint);
+    let context_length = context_length_tokens(settings.context_length)?;
+    let body = LmStudioLoadReq {
+        model: &settings.model,
+        context_length,
+        // Return the server's actual applied configuration so the UI can report
+        // it instead of assuming the requested value was accepted.
+        echo_load_config: true,
+    };
 
     // Loading a large model can take a while — allow a generous timeout.
     let client = reqwest::Client::builder()
@@ -122,14 +123,65 @@ pub async fn load_model(settings: &ModelSettings) -> Result<(), String> {
         .json(&body)
         .send()
         .await
-        .map_err(|e| format!("Could not reach {url}: {e}"))?;
+        .map_err(|e| format!("Could not reach LM Studio's native API at {url}: {e}"))?;
 
     let status = resp.status();
     if !status.is_success() {
         let detail = resp.text().await.unwrap_or_default();
-        return Err(format!("Model load failed (HTTP {status}): {detail}"));
+        return Err(format!("LM Studio model load failed (HTTP {status}): {detail}"));
     }
-    Ok(())
+
+    let parsed: LmStudioLoadResp = resp
+        .json()
+        .await
+        .map_err(|e| format!("Unexpected LM Studio model-load response: {e}"))?;
+    return Ok(ModelLoadResult {
+        context_length: parsed.load_config.and_then(|config| config.context_length),
+    });
+}
+
+/// The app endpoint is normally `http://host:port/v1`; LM Studio's native
+/// model-management endpoints live at the host root under `/api/v1`.
+fn lmstudio_load_url(endpoint: &str) -> String {
+    let base = endpoint.trim_end_matches('/');
+    let base = base.strip_suffix("/v1").unwrap_or(base).trim_end_matches('/');
+    return format!("{base}/api/v1/models/load");
+}
+
+/// The UI stores context length in thousands of tokens (e.g. `100` = `100k`).
+/// A zero value preserves the old "server default" behavior by omitting the
+/// optional native-API field.
+fn context_length_tokens(context_length_k: i64) -> Result<Option<i64>, String> {
+    if context_length_k < 0 {
+        return Err("Context length cannot be negative.".into());
+    }
+    if context_length_k == 0 {
+        return Ok(None);
+    }
+    return context_length_k
+        .checked_mul(1_000)
+        .map(Some)
+        .ok_or_else(|| "Context length is too large.".into());
+}
+
+#[derive(Serialize)]
+struct LmStudioLoadReq<'a> {
+    model: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    context_length: Option<i64>,
+    echo_load_config: bool,
+}
+
+#[derive(Deserialize)]
+struct LmStudioLoadResp {
+    #[serde(default)]
+    load_config: Option<LmStudioLoadConfig>,
+}
+
+#[derive(Deserialize)]
+struct LmStudioLoadConfig {
+    #[serde(default)]
+    context_length: Option<i64>,
 }
 
 #[derive(Serialize)]
@@ -155,13 +207,13 @@ struct ChatReq<'a> {
 
 impl<'a> ChatReq<'a> {
     fn build(settings: &'a ModelSettings, messages: Vec<ChatReqMsg>, stream: bool) -> Self {
-        ChatReq {
+        return ChatReq {
             model: &settings.model,
             messages,
             temperature: settings.temperature,
             max_tokens: (settings.max_tokens > 0).then_some(settings.max_tokens),
             stream,
-        }
+        };
     }
 }
 
@@ -224,11 +276,11 @@ pub async fn chat_completion(
 
     // The answer is in `content`; if the model only produced reasoning, fall
     // back to it so the reply isn't blank.
-    Ok(if msg.content.trim().is_empty() {
+    return Ok(if msg.content.trim().is_empty() {
         msg.reasoning_content
     } else {
         msg.content
-    })
+    });
 }
 
 /// `POST {endpoint}/chat/completions` with `stream: true`.
@@ -311,5 +363,34 @@ pub async fn chat_completion_stream<F: FnMut(&str)>(
         on_token(&reasoning_full);
         return Ok(reasoning_full);
     }
-    Ok(content_full)
+    return Ok(content_full);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_load_url_removes_the_openai_v1_suffix() {
+        assert_eq!(
+            lmstudio_load_url("http://localhost:1234/v1"),
+            "http://localhost:1234/api/v1/models/load"
+        );
+        assert_eq!(
+            lmstudio_load_url("http://localhost:1234/v1/"),
+            "http://localhost:1234/api/v1/models/load"
+        );
+    }
+
+    #[test]
+    fn context_slider_value_becomes_tokens() {
+        assert_eq!(context_length_tokens(100).unwrap(), Some(100_000));
+        assert_eq!(context_length_tokens(4).unwrap(), Some(4_000));
+        assert_eq!(context_length_tokens(0).unwrap(), None);
+    }
+
+    #[test]
+    fn negative_context_is_rejected() {
+        assert!(context_length_tokens(-1).is_err());
+    }
 }

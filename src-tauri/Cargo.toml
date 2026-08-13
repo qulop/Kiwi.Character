@@ -29,3 +29,4 @@ futures-util = "0.3"
 uuid = { version = "1", features = ["v4"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 base64 = "0.22"
+tauri-plugin-notification = "2.3.3"

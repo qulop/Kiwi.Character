@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { ModelSettings, EndpointTestResult } from '../types';
+import type { ModelSettings, ModelLoadResult, EndpointTestResult } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
 
 interface SettingsModalProps {
@@ -14,7 +14,7 @@ interface SettingsModalProps {
   /** Ping the endpoint; resolve with the available model list. */
   onTest: (endpoint: string) => Promise<EndpointTestResult>;
   /** Persist + load the chosen model on the server. Rejects on failure. */
-  onLoad: (settings: ModelSettings) => Promise<void>;
+  onLoad: (settings: ModelSettings) => Promise<ModelLoadResult>;
   /** Fetch the models currently loaded on the given endpoint. */
   onRefreshLoaded: (endpoint: string) => Promise<string[]>;
   /** Unload a model on the server. */
@@ -93,8 +93,9 @@ export default function SettingsModal({
     setLoading(true);
     setLoadResult(null);
     try {
-      await onLoad(s);
-      setLoadResult({ ok: true, text: `Loaded “${s.model}”.` });
+      const result = await onLoad(s);
+      const context = result.contextLength ? ` with ${result.contextLength.toLocaleString()} tokens of context.` : '.';
+      setLoadResult({ ok: true, text: `Loaded “${s.model}”${context}` });
       await refreshLoaded(s.endpoint);
     } catch (e) {
       setLoadResult({ ok: false, text: String(e) });

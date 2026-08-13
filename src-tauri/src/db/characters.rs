@@ -21,7 +21,7 @@ const SELECT_CHARACTER: &str = "
     ) v ON v.character_id = c.id";
 
 fn row_to_character(r: &Row) -> rusqlite::Result<Character> {
-    Ok(Character {
+    return Ok(Character {
         id: r.get("id")?,
         name: r.get("name")?,
         info: r.get("info")?,
@@ -32,33 +32,35 @@ fn row_to_character(r: &Row) -> rusqlite::Result<Character> {
         is_favorite: r.get::<_, i64>("is_favorite")? != 0,
         created_at: r.get("created_at")?,
         last_message_at: r.get::<_, Option<i64>>("last_message_at")?,
-    })
+    });
 }
 
 pub fn list(conn: &Connection) -> Result<Vec<Character>, String> {
     let sql = format!("{SELECT_CHARACTER} ORDER BY c.created_at DESC");
     let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
     let rows = stmt.query_map([], row_to_character).map_err(|e| e.to_string())?;
-    rows.collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(|e| e.to_string())
+    return rows
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| e.to_string());
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Character>, String> {
     let sql = format!("{SELECT_CHARACTER} WHERE c.id = ?1");
-    conn.query_row(&sql, params![id], row_to_character)
+    return conn
+        .query_row(&sql, params![id], row_to_character)
         .optional()
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string());
 }
 
 /// Case-insensitive existence check. Pass `""` for `exclude_id` when creating.
 pub fn name_exists(conn: &Connection, name: &str, exclude_id: &str) -> Result<bool, String> {
-    conn.query_row(
+    return conn.query_row(
         "SELECT EXISTS(SELECT 1 FROM characters WHERE name = ?1 COLLATE NOCASE AND id <> ?2)",
         params![name, exclude_id],
         |r| r.get::<_, i64>(0),
     )
     .map(|n| n == 1)
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string());
 }
 
 pub fn insert(
@@ -111,7 +113,7 @@ pub fn insert(
         }
     })?;
 
-    Ok(Character {
+    return Ok(Character {
         id,
         name,
         info: input.info,
@@ -122,7 +124,7 @@ pub fn insert(
         is_favorite: false,
         created_at: ts,
         last_message_at: None,
-    })
+    });
 }
 
 /// Delete a character. Removes its avatar file (best-effort); the row delete
@@ -135,7 +137,7 @@ pub fn delete(conn: &Connection, avatars_dir: &Path, id: &str) -> Result<(), Str
     }
     conn.execute("DELETE FROM characters WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
-    Ok(())
+    return Ok(());
 }
 
 pub fn set_favorite(conn: &Connection, id: &str, fav: bool) -> Result<(), String> {
@@ -144,7 +146,17 @@ pub fn set_favorite(conn: &Connection, id: &str, fav: bool) -> Result<(), String
         params![id, fav as i64, now_ms()],
     )
     .map_err(|e| e.to_string())?;
-    Ok(())
+    return Ok(());
+}
+
+pub fn set_visibility(conn: &Connection, id: &str, visible: bool) -> Result<(), String> {
+    conn.execute(
+        "UPDATE characters SET is_visible = ?2, updated_at = ?3 WHERE id = ?1",
+        params![id, visible as i64, now_ms()]
+    )
+    .map_err(|e| e.to_string())?;
+
+    return Ok(());
 }
 
 /// Update an existing character. `input.avatar`:
@@ -196,19 +208,19 @@ pub fn update(
         .map_err(map_unique(&name))?;
     }
 
-    get(conn, id)?.ok_or_else(|| format!("Character '{id}' not found"))
+    return get(conn, id)?.ok_or_else(|| format!("Character '{id}' not found"));
 }
 
 /// Map a UNIQUE-constraint failure to the friendly duplicate-name message.
 fn map_unique(name: &str) -> impl Fn(rusqlite::Error) -> String + '_ {
-    move |err| {
+    return move |err| {
         let msg = err.to_string();
         if msg.contains("UNIQUE") {
             format!("A character named '{name}' already exists")
         } else {
             msg
         }
-    }
+    };
 }
 
 /// First-run sample characters (stable ids so `conv-<id>` lines up).
@@ -254,5 +266,5 @@ pub fn seed_samples(conn: &Connection) -> Result<(), String> {
         )
         .map_err(|e| e.to_string())?;
     }
-    Ok(())
+    return Ok(());
 }

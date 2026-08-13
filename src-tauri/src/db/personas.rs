@@ -8,14 +8,14 @@ use crate::models::{NewPersonaInput, Persona};
 use crate::state::{new_id, now_ms};
 
 fn row_to_persona(r: &Row) -> rusqlite::Result<Persona> {
-    Ok(Persona {
+    return Ok(Persona {
         id: r.get("id")?,
         name: r.get("name")?,
         description: r.get("description")?,
         avatar: r.get::<_, Option<String>>("avatar_path")?,
         is_default: r.get::<_, i64>("is_default")? != 0,
         created_at: r.get("created_at")?,
-    })
+    });
 }
 
 const SELECT_PERSONA: &str =
@@ -27,15 +27,17 @@ pub fn list(conn: &Connection) -> Result<Vec<Persona>, String> {
     let rows = stmt
         .query_map([], row_to_persona)
         .map_err(|e| e.to_string())?;
-    rows.collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(|e| e.to_string())
+    return rows
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| e.to_string());
 }
 
 pub fn get(conn: &Connection, id: &str) -> Result<Option<Persona>, String> {
     let sql = format!("{SELECT_PERSONA} WHERE id = ?1");
-    conn.query_row(&sql, params![id], row_to_persona)
+    return conn
+        .query_row(&sql, params![id], row_to_persona)
         .optional()
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string());
 }
 
 pub fn insert(
@@ -63,14 +65,14 @@ pub fn insert(
     )
     .map_err(|e| e.to_string())?;
 
-    Ok(Persona {
+    return Ok(Persona {
         id,
         name,
         description: input.description,
         avatar: avatar_path,
         is_default: false,
         created_at: ts,
-    })
+    });
 }
 
 /// Update an existing persona. `input.avatar`:
@@ -111,18 +113,18 @@ pub fn update(
         .map_err(|e| e.to_string())?;
     }
 
-    get(conn, id)?.ok_or_else(|| format!("Persona '{id}' not found"))
+    return get(conn, id)?.ok_or_else(|| format!("Persona '{id}' not found"));
 }
 
 fn avatar_of(conn: &Connection, id: &str) -> Result<Option<String>, String> {
-    conn.query_row(
+    return conn.query_row(
         "SELECT avatar_path FROM personas WHERE id = ?1",
         params![id],
         |r| r.get::<_, Option<String>>(0),
     )
     .optional()
     .map_err(|e| e.to_string())
-    .map(|opt| opt.flatten())
+    .map(|opt| opt.flatten());
 }
 
 /// Delete a persona. Removes its avatar file (best-effort) and clears any
@@ -138,5 +140,5 @@ pub fn delete(conn: &Connection, avatars_dir: &Path, id: &str) -> Result<(), Str
     .map_err(|e| e.to_string())?;
     conn.execute("DELETE FROM personas WHERE id = ?1", params![id])
         .map_err(|e| e.to_string())?;
-    Ok(())
+    return Ok(());
 }

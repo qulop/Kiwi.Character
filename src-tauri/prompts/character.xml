@@ -1,0 +1,6 @@
+  <character>
+    <name>{{name}}</name>
+    <short_info>{{short_info}}</short_info>
+    <appearance>{{appearance}}</appearance>
+    <description>{{description}}</description>
+  </character>
