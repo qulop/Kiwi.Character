@@ -10,7 +10,7 @@ use std::time::Duration;
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 
-use crate::models::{ModelLoadResult, ModelSettings};
+use crate::models::{LoadedModel, ModelLoadResult, ModelSettings};
 
 /// `GET {endpoint}/models` — returns the ids the server advertises.
 pub async fn list_models(endpoint: &str) -> Result<Vec<String>, String> {
@@ -50,10 +50,10 @@ pub async fn list_models(endpoint: &str) -> Result<Vec<String>, String> {
 }
 
 /// The models currently **loaded** on the server, via LM Studio's native
-/// `/api/v0/models` (which reports each model's `state`). Filters to LLM/VLM
-/// models that are `loaded` (excludes embeddings and unloaded ones). Returns an
-/// error for servers that don't expose `/api/v0` (e.g. plain Ollama).
-pub async fn loaded_models(endpoint: &str) -> Result<Vec<String>, String> {
+/// `/api/v0/models` (which reports each model's `state` and type). Returns all
+/// loaded types so the UI can distinguish character, embedding, and reranker
+/// models. Errors for servers that don't expose `/api/v0` (e.g. plain Ollama).
+pub async fn loaded_models(endpoint: &str) -> Result<Vec<LoadedModel>, String> {
     // The native API lives at the host root, not under /v1.
     let base = endpoint.trim_end_matches('/');
     let base = base.strip_suffix("/v1").unwrap_or(base).trim_end_matches('/');
@@ -93,8 +93,8 @@ pub async fn loaded_models(endpoint: &str) -> Result<Vec<String>, String> {
     return Ok(parsed
         .data
         .into_iter()
-        .filter(|m| m.state == "loaded" && (m.kind == "llm" || m.kind == "vlm"))
-        .map(|m| m.id)
+        .filter(|m| m.state == "loaded")
+        .map(|m| LoadedModel { id: m.id, kind: m.kind })
         .collect());
 }
 
@@ -102,10 +102,27 @@ pub async fn loaded_models(endpoint: &str) -> Result<Vec<String>, String> {
 /// context window. This cannot use the OpenAI-compatible chat endpoint: that
 /// endpoint only triggers JIT loading with LM Studio's default load settings.
 pub async fn load_model(settings: &ModelSettings) -> Result<ModelLoadResult, String> {
-    let url = lmstudio_load_url(&settings.endpoint);
     let context_length = context_length_tokens(settings.context_length)?;
+    return load_model_by_id(&settings.endpoint, &settings.model, context_length).await;
+}
+
+/// Load a model without character-model-only options. Used for embedding and
+/// future reranker models, which should not inherit the chat context setting.
+pub async fn load_auxiliary_model(endpoint: &str, model: &str) -> Result<ModelLoadResult, String> {
+    if model.trim().is_empty() {
+        return Err("Choose a model to load".into());
+    }
+    return load_model_by_id(endpoint, model, None).await;
+}
+
+async fn load_model_by_id(
+    endpoint: &str,
+    model: &str,
+    context_length: Option<i64>,
+) -> Result<ModelLoadResult, String> {
+    let url = lmstudio_load_url(endpoint);
     let body = LmStudioLoadReq {
-        model: &settings.model,
+        model,
         context_length,
         // Return the server's actual applied configuration so the UI can report
         // it instead of assuming the requested value was accepted.

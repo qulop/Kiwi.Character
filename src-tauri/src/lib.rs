@@ -69,10 +69,13 @@ pub fn run() {
             commands::delete_conversation,
             commands::get_settings,
             commands::save_settings,
+            commands::get_memory_settings,
+            commands::save_memory_settings,
             commands::test_endpoint,
             commands::loaded_models,
             commands::unload_model,
             commands::load_model,
+            commands::load_embedding_model,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -419,3 +419,11 @@ pub struct EndpointTestResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
+
+/// A model currently loaded by LM Studio's native model-management API.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadedModel {
+    pub id: String,
+    pub kind: String,
+}

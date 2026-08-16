@@ -18,6 +18,8 @@ import type {
   ChatMessage,
   HistoryItem,
   ModelSettings,
+  MemorySettings,
+  LoadedModel,
   EndpointTestResult,
   Persona,
   NewPersonaInput,
@@ -177,14 +179,19 @@ export function getSettings(): Promise<ModelSettings> {
 export function saveSettings(settings: ModelSettings): Promise<void> {
   return invoke('save_settings', { settings });
 }
+export function getMemorySettings(): Promise<MemorySettings> { return invoke('get_memory_settings'); }
+export function saveMemorySettings(settings: MemorySettings): Promise<void> { return invoke('save_memory_settings', { settings }); }
 
 export function testEndpoint(endpoint: string): Promise<EndpointTestResult> {
   return invoke('test_endpoint', { endpoint });
 }
 
 /** Models currently loaded on the server (LM Studio). */
-export function loadedModels(endpoint: string): Promise<string[]> {
+export function loadedModels(endpoint: string): Promise<LoadedModel[]> {
   return invoke('loaded_models', { endpoint });
+}
+export function loadEmbeddingModel(endpoint: string, model: string): Promise<ModelLoadResult> {
+  return invoke('load_embedding_model', { endpoint, model });
 }
 
 /** Unload a model on the server (via the lms CLI). */

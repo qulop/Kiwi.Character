@@ -3,13 +3,15 @@ import type {
   Character,
   HistoryItem,
   ModelSettings,
+  MemorySettings,
+  LoadedModel,
   NewCharacterInput,
   Persona,
   NewPersonaInput,
   Group,
   NewGroupInput,
 } from './types';
-import { DEFAULT_SETTINGS } from './types';
+import { DEFAULT_MEMORY_SETTINGS, DEFAULT_SETTINGS } from './types';
 import * as api from './api';
 import Sidebar from './components/Sidebar';
 import MainPage from './components/MainPage';
@@ -78,10 +80,11 @@ export default function App() {
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [settings, setSettings] = useState<ModelSettings>(DEFAULT_SETTINGS);
+  const [memorySettings, setMemorySettings] = useState<MemorySettings>(DEFAULT_MEMORY_SETTINGS);
   const [endpointStatus, setEndpointStatus] = useState<{
     online: boolean;
     models: string[];
-    loaded: string[];
+    loaded: LoadedModel[];
   }>({ online: false, models: [], loaded: [] });
 
   const [activeCharacter, setActiveCharacter] = useState<Character | null>(null);
@@ -97,6 +100,7 @@ export default function App() {
     api.listPersonas().then(setPersonas).catch(console.error);
     api.listGroups().then(setGroups).catch(console.error);
     api.getSettings().then(setSettings).catch(() => { /* keep defaults */ });
+    api.getMemorySettings().then(setMemorySettings).catch(() => { /* keep defaults */ });
   }, []);
 
   // Remember the last endpoint and keep its online status fresh by pinging it
@@ -107,7 +111,7 @@ export default function App() {
     const ping = async () => {
       try {
         const res = await api.testEndpoint(settings.endpoint);
-        let loaded: string[] = [];
+        let loaded: LoadedModel[] = [];
         if (res.ok) {
           // Best-effort: the loaded-model API is LM Studio specific.
           try { loaded = await api.loadedModels(settings.endpoint); } catch { /* ignore */ }
@@ -355,15 +359,17 @@ export default function App() {
           {modal === 'settings' && (
             <SettingsModal
               initial={settings}
+              memoryInitial={memorySettings}
               initialVerified={endpointStatus.online}
               initialModels={endpointStatus.models}
               initialLoaded={endpointStatus.loaded}
               onClose={closeModals}
               onTest={api.testEndpoint}
               onLoad={async (s) => { setSettings(s); return api.loadModel(s); }}
+              onLoadEmbedding={api.loadEmbeddingModel}
               onRefreshLoaded={api.loadedModels}
               onUnload={api.unloadModel}
-              onSave={async (s) => { setSettings(s); await api.saveSettings(s); }}
+              onSaveMemory={async (s) => { await api.saveMemorySettings(s); setMemorySettings(s); }}
             />
           )}
           {modal === 'new' && (

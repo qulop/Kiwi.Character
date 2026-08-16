@@ -128,6 +128,20 @@ export interface EndpointTestResult {
   error?: string;
 }
 
+export interface LoadedModel { id: string; kind: string; }
+export interface MemorySettings {
+  enabled: boolean; embeddingEndpoint: string; embeddingModel: string;
+  embeddingDimensions: number; recentMessageLimit: number; recallDepth: number;
+  rankingMode: 'embedding' | 'reranker'; rerankerModel?: string | null;
+  rerankerCandidateLimit: number;
+}
+export const DEFAULT_MEMORY_SETTINGS: MemorySettings = {
+  enabled: true, embeddingEndpoint: 'http://localhost:1234/v1',
+  embeddingModel: 'Qwen/Qwen3-Embedding-0.6B', embeddingDimensions: 1024,
+  recentMessageLimit: 20, recallDepth: 6, rankingMode: 'embedding',
+  rerankerModel: null, rerankerCandidateLimit: 24,
+};
+
 export const DEFAULT_SETTINGS: ModelSettings = {
   endpoint: 'http://localhost:1234/v1',
   model: 'llama-3.1-8b-instruct',

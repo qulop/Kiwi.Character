@@ -11,7 +11,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use crate::db;
 use crate::models::{
-    Character, ChatMessage, EndpointTestResult, Group, HistoryItem, ModelLoadResult, ModelSettings,
+    Character, ChatMessage, EndpointTestResult, Group, HistoryItem, LoadedModel, MemorySettings, ModelLoadResult, ModelSettings,
     NewCharacterInput, NewGroupInput, NewPersonaInput, Persona,
 };
 use crate::openai::{self, ChatReqMsg};
@@ -514,6 +514,18 @@ pub fn save_settings(settings: ModelSettings, state: State<'_, AppState>) -> Res
 }
 
 #[tauri::command]
+pub fn get_memory_settings(state: State<'_, AppState>) -> Result<MemorySettings, String> {
+    let db = state.db.lock().unwrap();
+    db::memories::get_settings(&db.conn)
+}
+
+#[tauri::command]
+pub fn save_memory_settings(settings: MemorySettings, state: State<'_, AppState>) -> Result<(), String> {
+    let db = state.db.lock().unwrap();
+    db::memories::save_settings(&db.conn, &settings)
+}
+
+#[tauri::command]
 pub async fn test_endpoint(endpoint: String) -> EndpointTestResult {
     return match openai::list_models(&endpoint).await {
         Ok(models) => {
@@ -529,8 +541,13 @@ pub async fn test_endpoint(endpoint: String) -> EndpointTestResult {
 
 /// Models currently loaded on the server (LM Studio native API).
 #[tauri::command]
-pub async fn loaded_models(endpoint: String) -> Result<Vec<String>, String> {
+pub async fn loaded_models(endpoint: String) -> Result<Vec<LoadedModel>, String> {
     return openai::loaded_models(&endpoint).await;
+}
+
+#[tauri::command]
+pub async fn load_embedding_model(endpoint: String, model: String) -> Result<ModelLoadResult, String> {
+    return openai::load_auxiliary_model(&endpoint, &model).await;
 }
 
 /// Unload a model on the server via the `lms` CLI (LM Studio has no REST unload).
