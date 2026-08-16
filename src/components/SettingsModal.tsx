@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { ModelSettings, ModelLoadResult, EndpointTestResult } from '../types';
 import { DEFAULT_SETTINGS } from '../types';
 
+type SettingsSection = 'model' | 'memory';
+
 interface SettingsModalProps {
   initial?: ModelSettings;
   /** Whether the app's background ping currently sees the endpoint as online. */
@@ -54,6 +56,12 @@ export default function SettingsModal({
   const [loadResult, setLoadResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [loaded, setLoaded] = useState<string[]>(initialLoaded);
   const [unloading, setUnloading] = useState(false);
+  const [section, setSection] = useState<SettingsSection>('model');
+  const [memoryEnabled, setMemoryEnabled] = useState(true);
+  const [embeddingModel, setEmbeddingModel] = useState('text-embedding-nomic-embed-text-v1.5');
+  const [recentMessageLimit, setRecentMessageLimit] = useState(20);
+  const [recallDepth, setRecallDepth] = useState(6);
+  const [memoryTestMessage, setMemoryTestMessage] = useState<string | null>(null);
 
   const set = <K extends keyof ModelSettings>(k: K, v: ModelSettings[K]) =>
     setS((prev) => ({ ...prev, [k]: v }));
@@ -123,6 +131,7 @@ export default function SettingsModal({
   };
 
   const lock = verified ? '' : ' kc-locked';
+  const memoryLock = memoryEnabled ? '' : ' kc-locked';
 
   return (
     <div className="kc-modal kc-modal--settings" onClick={(e) => e.stopPropagation()}>
@@ -133,8 +142,25 @@ export default function SettingsModal({
       </div>
       <div className="kc-divider" />
 
-      <div className="kc-modal-body">
-        <div>
+      <div className="kc-modal-body kc-modal-body--settings">
+        <nav className="kc-settings-nav" aria-label="Settings sections">
+          <button
+            className={'kc-settings-nav-item' + (section === 'model' ? ' active' : '')}
+            onClick={() => setSection('model')}
+          >
+            Model
+          </button>
+          <button
+            className={'kc-settings-nav-item' + (section === 'memory' ? ' active' : '')}
+            onClick={() => setSection('memory')}
+          >
+            Memory
+          </button>
+        </nav>
+
+        <div className="kc-settings-content">
+          {section === 'model' && <>
+            <div>
           <div className="kc-endpoint-row">
             <span className="label">API Endpoint:</span>
             <input
@@ -238,10 +264,87 @@ export default function SettingsModal({
               </div>
             )}
           </div>
+            </div>
+          </>}
+          {section === 'memory' && (
+            <div className="kc-memory-section">
+              <div className="kc-section-label" style={{ padding: 0 }}>Long-term memory</div>
+
+              <label className="kc-memory-toggle">
+                <input
+                  type="checkbox"
+                  checked={memoryEnabled}
+                  onChange={(e) => setMemoryEnabled(e.target.checked)}
+                />
+                <span>Enable long-term memory</span>
+              </label>
+
+              <div className={'kc-memory-controls' + memoryLock}>
+                <label className="kc-field">
+                  <span className="kc-field-label">Embedding model</span>
+                  <div className="kc-memory-model-row">
+                    <input
+                      className="kc-input"
+                      value={embeddingModel}
+                      onChange={(e) => { setEmbeddingModel(e.target.value); setMemoryTestMessage(null); }}
+                    />
+                    <button
+                      className="kc-test-btn"
+                      onClick={() => setMemoryTestMessage('Embedding-model testing will be available with the memory backend.')}
+                    >
+                      Test
+                    </button>
+                  </div>
+                </label>
+                {memoryTestMessage && <div className="kc-status-wait">{memoryTestMessage}</div>}
+
+                <div className="kc-field">
+                  <div className="kc-rangerow">
+                    <span>Short-term history length</span>
+                    <span className="val">{recentMessageLimit} messages ({recentMessageLimit / 2} turns)</span>
+                  </div>
+                  <input
+                    className="kc-range"
+                    type="range"
+                    min={4}
+                    max={40}
+                    step={2}
+                    value={recentMessageLimit}
+                    onChange={(e) => setRecentMessageLimit(+e.target.value)}
+                  />
+                </div>
+
+                <div className="kc-field">
+                  <div className="kc-rangerow">
+                    <span className="kc-memory-label-with-help">
+                      Recall depth
+                      <button
+                        type="button"
+                        className="kc-help-tip"
+                        aria-label="About recall depth"
+                        data-tooltip="How many relevant memories are added to the character's context for each reply. More memories provide broader context but use more of the model's context window."
+                      >
+                        ?
+                      </button>
+                    </span>
+                    <span className="val">{recallDepth} memories</span>
+                  </div>
+                  <input
+                    className="kc-range"
+                    type="range"
+                    min={1}
+                    max={12}
+                    value={recallDepth}
+                    onChange={(e) => setRecallDepth(+e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="kc-modal-foot">
+      {section === 'model' && <div className="kc-modal-foot">
         {loadResult && (
           <span
             className={loadResult.ok ? 'kc-status-ok' : 'kc-form-error'}
@@ -253,7 +356,7 @@ export default function SettingsModal({
         <button className={'kc-primary-btn' + lock} onClick={load} disabled={!verified || loading}>
           {loading ? 'Loading…' : 'Load model'}
         </button>
-      </div>
+      </div>}
     </div>
   );
 }
