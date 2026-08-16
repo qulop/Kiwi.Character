@@ -11,12 +11,13 @@ use rusqlite::Connection;
 pub mod characters;
 pub mod conversations;
 pub mod groups;
+pub mod memories;
 pub mod messages;
 pub mod personas;
 pub mod settings;
 
 const SCHEMA: &str = include_str!("schema.sql");
-const SCHEMA_VERSION: i64 = 3;
+const SCHEMA_VERSION: i64 = 4;
 
 /// Owns the database connection and knows where avatar files live.
 pub struct Db {
@@ -50,6 +51,7 @@ impl Db {
 
         let db = Db { conn, avatars_dir };
         settings::ensure_row(&db.conn)?;
+        memories::ensure_settings_row(&db.conn)?;
         db.seed_if_empty()?;
         return Ok(db);
     }
@@ -115,6 +117,11 @@ fn migrate(conn: &Connection, from_version: i64) -> Result<(), String> {
     // for that chat), remembered across launches.
     if from_version < 3 {
         add_column_if_missing(conn, "conversations", "active_persona_id", "TEXT")?;
+    }
+    // v4: memory tables are created by the versioned `CREATE TABLE IF NOT EXISTS`
+    // statements in schema.sql before this migration function runs.
+    if from_version < 4 {
+        log::info!(target: "kiwi::db", "Initialized long-term memory schema");
     }
     return Ok(());
 }

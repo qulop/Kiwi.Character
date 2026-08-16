@@ -4,6 +4,12 @@
 //! React side line up with the TS interfaces (e.g. `initialMessage`,
 //! `contextLength`) while keeping idiomatic snake_case in Rust.
 
+use std::{fmt, str::FromStr};
+
+use rusqlite::{
+    types::{FromSql, FromSqlError, FromSqlResult, ToSql, ToSqlOutput, ValueRef},
+    Result as SqlResult,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -189,6 +195,219 @@ impl Default for ModelSettings {
             system_prompt: String::new(),
         };
     }
+}
+
+/// Persisted configuration for long-term character memory.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemorySettings {
+    pub enabled: bool,
+    pub embedding_endpoint: String,
+    pub embedding_model: String,
+    pub embedding_dimensions: i64,
+    pub recent_message_limit: i64,
+    pub recall_depth: i64,
+    pub ranking_mode: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reranker_model: Option<String>,
+    pub reranker_candidate_limit: i64,
+}
+
+impl Default for MemorySettings {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            embedding_endpoint: "http://localhost:1234/v1".into(),
+            embedding_model: "Qwen/Qwen3-Embedding-0.6B".into(),
+            embedding_dimensions: 1024,
+            recent_message_limit: 20,
+            recall_depth: 6,
+            ranking_mode: "embedding".into(),
+            reranker_model: None,
+            reranker_candidate_limit: 24,
+        }
+    }
+}
+
+/// The semantic category of a durable memory. Values are stored in SQLite as
+/// lowercase identifiers and intentionally match the schema CHECK constraint.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MemoryKind {
+    Fact,
+    Preference,
+    Event,
+    Relationship,
+    Summary,
+    Manual,
+}
+
+impl MemoryKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Fact => "fact",
+            Self::Preference => "preference",
+            Self::Event => "event",
+            Self::Relationship => "relationship",
+            Self::Summary => "summary",
+            Self::Manual => "manual",
+        }
+    }
+}
+
+impl fmt::Display for MemoryKind {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl FromStr for MemoryKind {
+    type Err = ();
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "fact" => Ok(Self::Fact),
+            "preference" => Ok(Self::Preference),
+            "event" => Ok(Self::Event),
+            "relationship" => Ok(Self::Relationship),
+            "summary" => Ok(Self::Summary),
+            "manual" => Ok(Self::Manual),
+            _ => Err(()),
+        }
+    }
+}
+
+impl ToSql for MemoryKind {
+    fn to_sql(&self) -> SqlResult<ToSqlOutput<'_>> {
+        Ok(self.as_str().into())
+    }
+}
+
+impl FromSql for MemoryKind {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value {
+            ValueRef::Text(b"fact") => Ok(Self::Fact),
+            ValueRef::Text(b"preference") => Ok(Self::Preference),
+            ValueRef::Text(b"event") => Ok(Self::Event),
+            ValueRef::Text(b"relationship") => Ok(Self::Relationship),
+            ValueRef::Text(b"summary") => Ok(Self::Summary),
+            ValueRef::Text(b"manual") => Ok(Self::Manual),
+            _ => Err(FromSqlError::InvalidType),
+        }
+    }
+}
+
+/// Lifecycle state of a memory entry. Only active entries are retrievable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MemoryEntryStatus {
+    Active,
+    Stale,
+    Invalid,
+}
+
+impl MemoryEntryStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Stale => "stale",
+            Self::Invalid => "invalid",
+        }
+    }
+}
+
+impl fmt::Display for MemoryEntryStatus {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl FromStr for MemoryEntryStatus {
+    type Err = ();
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "active" => Ok(Self::Active),
+            "stale" => Ok(Self::Stale),
+            "invalid" => Ok(Self::Invalid),
+            _ => Err(()),
+        }
+    }
+}
+
+impl ToSql for MemoryEntryStatus {
+    fn to_sql(&self) -> SqlResult<ToSqlOutput<'_>> {
+        Ok(self.as_str().into())
+    }
+}
+
+impl FromSql for MemoryEntryStatus {
+    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
+        match value {
+            ValueRef::Text(b"active") => Ok(Self::Active),
+            ValueRef::Text(b"stale") => Ok(Self::Stale),
+            ValueRef::Text(b"invalid") => Ok(Self::Invalid),
+            _ => Err(FromSqlError::InvalidType),
+        }
+    }
+}
+
+#[cfg(test)]
+mod memory_enum_tests {
+    use super::*;
+
+    #[test]
+    fn memory_enums_use_stable_sql_identifiers() {
+        assert_eq!(MemoryKind::Preference.to_string(), "preference");
+        assert_eq!("manual".parse(), Ok(MemoryKind::Manual));
+        assert_eq!(MemoryEntryStatus::Stale.to_string(), "stale");
+        assert_eq!("invalid".parse(), Ok(MemoryEntryStatus::Invalid));
+    }
+}
+
+/// A durable memory scoped to one character conversation and optional persona.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Memory {
+    pub id: String,
+    pub conversation_id: String,
+    pub character_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub persona_id: Option<String>,
+    pub kind: MemoryKind,
+    pub content: String,
+    pub embedding_dimensions: i64,
+    pub embedding_model: String,
+    pub importance: i64,
+    pub pinned: bool,
+    pub status: MemoryEntryStatus,
+    pub created_at: i64,
+    pub updated_at: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_recalled_at: Option<i64>,
+}
+
+/// Repository-only insertion data. Later steps will expose narrower Tauri inputs.
+#[derive(Debug, Clone)]
+pub struct NewMemoryInput {
+    pub conversation_id: String,
+    pub character_id: String,
+    pub persona_id: Option<String>,
+    pub kind: MemoryKind,
+    pub content: String,
+    pub embedding: Vec<f32>,
+    pub embedding_dimensions: i64,
+    pub embedding_model: String,
+    pub importance: i64,
+    pub pinned: bool,
+    pub source_message_ids: Vec<String>,
+}
+
+/// An active memory and decoded normalized vector, used by Step 17 retrieval.
+#[derive(Debug, Clone)]
+pub struct MemoryCandidate {
+    pub memory: Memory,
+    pub embedding: Vec<f32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
