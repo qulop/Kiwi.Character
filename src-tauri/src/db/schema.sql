@@ -1,4 +1,4 @@
--- Kiwi.Character SQLite schema (version 1).
+-- Kiwi.Character SQLite schema (version 4).
 -- Authoritative reference: agent-docs/database-scheme.md
 -- All CREATE ... IF NOT EXISTS so this doubles as the migration for v1.
 
@@ -110,3 +110,51 @@ CREATE TABLE IF NOT EXISTS settings (
     max_tokens      INTEGER NOT NULL,
     system_prompt   TEXT    NOT NULL DEFAULT ''
 );
+
+-- ---------- memory_settings (single row, id is always 1) ----------
+CREATE TABLE IF NOT EXISTS memory_settings (
+    id                        INTEGER PRIMARY KEY CHECK (id = 1),
+    enabled                   INTEGER NOT NULL DEFAULT 1,
+    embedding_endpoint        TEXT    NOT NULL DEFAULT 'http://localhost:1234/v1',
+    embedding_model           TEXT    NOT NULL DEFAULT 'Qwen/Qwen3-Embedding-0.6B',
+    embedding_dimensions      INTEGER NOT NULL DEFAULT 1024 CHECK (embedding_dimensions > 0),
+    recent_message_limit      INTEGER NOT NULL DEFAULT 20 CHECK (recent_message_limit > 0),
+    recall_depth              INTEGER NOT NULL DEFAULT 6 CHECK (recall_depth > 0),
+    ranking_mode              TEXT    NOT NULL DEFAULT 'embedding'
+                              CHECK (ranking_mode IN ('embedding', 'reranker')),
+    reranker_model            TEXT,
+    reranker_candidate_limit  INTEGER NOT NULL DEFAULT 24 CHECK (reranker_candidate_limit > 0),
+    updated_at                INTEGER NOT NULL
+);
+
+-- ---------- memories ----------
+CREATE TABLE IF NOT EXISTS memories (
+    id                   TEXT    PRIMARY KEY,
+    conversation_id      TEXT    NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    character_id         TEXT    NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+    persona_id           TEXT    REFERENCES personas(id) ON DELETE CASCADE,
+    kind                 TEXT    NOT NULL CHECK (kind IN ('fact','preference','event','relationship','summary','manual')),
+    content              TEXT    NOT NULL,
+    embedding            BLOB    NOT NULL,
+    embedding_dimensions INTEGER NOT NULL CHECK (embedding_dimensions > 0),
+    embedding_model      TEXT    NOT NULL,
+    importance           INTEGER NOT NULL DEFAULT 3 CHECK (importance BETWEEN 1 AND 5),
+    pinned               INTEGER NOT NULL DEFAULT 0,
+    status               TEXT    NOT NULL DEFAULT 'active'
+                         CHECK (status IN ('active','stale','invalid')),
+    created_at           INTEGER NOT NULL,
+    updated_at           INTEGER NOT NULL,
+    last_recalled_at     INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_memories_active_scope
+    ON memories(conversation_id, persona_id, status);
+
+-- ---------- memory_sources ----------
+CREATE TABLE IF NOT EXISTS memory_sources (
+    memory_id  TEXT NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+    message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    PRIMARY KEY (memory_id, message_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_sources_message ON memory_sources (message_id);
