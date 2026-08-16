@@ -171,7 +171,7 @@ after:
       migration code, and repositories. Vectors are normalized little-endian
       `f32` BLOBs; memories are scoped to a conversation/character and optional
       persona, and source links support later invalidation._
-- [ ] **Step 15 — Persist Memory settings** → [15_memory-settings.md](15_memory-settings.md)
+- [x] [STEP DONE] <s>**Step 15 — Persist Memory settings** → [15_memory-settings.md](15_memory-settings.md)</s>
       _Back the existing Settings > Memory controls with the DB. Add Rust/TS
       DTOs, repository functions, commands, and `api.ts` wrappers for enabled,
       embedding endpoint/model/dimensions, recent-message limit, recall depth,
