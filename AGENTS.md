@@ -172,15 +172,15 @@ after:
       `f32` BLOBs; memories are scoped to a conversation/character and optional
       persona, and source links support later invalidation._
 - [x] [STEP DONE] <s>**Step 15 — Persist Memory settings** → [15_memory-settings.md](15_memory-settings.md)</s>
-      _Back the existing Settings > Memory controls with the DB. Add Rust/TS
-      DTOs, repository functions, commands, and `api.ts` wrappers for enabled,
-      embedding endpoint/model/dimensions, recent-message limit, recall depth,
-      and reserved ranking configuration. The embedding endpoint is configured
-      separately from the character-model endpoint so CPU inference can be used._
+      _Persisted Memory settings and rebuilt Settings > Models: typed loaded-model
+      badges, character/embedding load actions, endpoint tests, and temporary
+      feedback toast. The separately configurable embedding endpoint feeds the
+      embedding-model picker; reranker settings remain reserved but hidden._
 - [ ] **Step 16 — Embedding provider and diagnostics** → [16_embedding-provider.md](16_embedding-provider.md)
       _Implement the OpenAI-compatible embedding client for
       `Qwen/Qwen3-Embedding-0.6B`: request/response validation, vector
-      normalization/serialization, and a real Settings test action. Default to
+      normalization/serialization, and a real `/embeddings` diagnostic (the
+      current Settings test only verifies connectivity and lists models). Default to
       a separately configured CPU embedding runtime; document that embedding
       failure must never prevent a chat reply._
 - [ ] **Step 17 — Semantic recall and prompt integration** → [17_semantic-recall.md](17_semantic-recall.md)
